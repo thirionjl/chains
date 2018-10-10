@@ -12,7 +12,8 @@ def l2_norm_regularizer(lambd, batch_size, weight_matrices_array):
         batch_size_node = nf.constant(batch_size)
     elif type(batch_size) == g.Node:
         batch_size_node = batch_size
-    return g.Node(L2NormRegularization(lambd=lambd), incoming_nodes=[batch_size_node] + weight_matrices_array)
+    return g.Node(L2NormRegularization(lambd=lambd),
+                  incoming_nodes=[batch_size_node] + weight_matrices_array)
 
 
 class L2NormRegularization(Op):
@@ -22,7 +23,9 @@ class L2NormRegularization(Op):
         if lambd is None:
             raise ValueError("L2NormRegularization parameter is mandatory")
         if type(lambd) != float:
-            raise ValueError(f"L2NormRegularization parameter should be a float, got {type(lambd)}")
+            raise ValueError(
+                f"L2NormRegularization parameter should be a float, "
+                f"got {type(lambd)}")
 
         self.lamda = lambd
         self.epsilon = epsilon
@@ -49,14 +52,16 @@ class L2NormRegularization(Op):
         self.output = max(s, self.epsilon) * (self.factor / 2)
 
     def partials(self, d_output):
-        return [-self.output * d_output / self.batch_size] + [self.factor * w * d_output for w in self.weights]
+        return [-self.output * d_output / self.batch_size] + \
+               [self.factor * w * d_output for w in self.weights]
 
 
 class Dropout(ElementWiseUnaryOp):
 
     def __init__(self, keep_prob, seed=None):
         if type(keep_prob) != float or not (0 < keep_prob <= 1):
-            raise ValueError(f"Drop-out keep probability should be a float between 0 and 1, got {keep_prob}")
+            raise ValueError(f"Drop-out keep probability should be a float "
+                             f"between 0 and 1, got {keep_prob}")
         self.keep_prob = keep_prob
         self.mask = None
         if seed is not None:

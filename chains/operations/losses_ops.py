@@ -20,7 +20,9 @@ class SigmoidCrossEntropyWithLogits(BinaryOp):
 
     def check_incoming_shapes(self, x: Shape, y: Shape):
         if x != y:
-            raise ValueError(f"SigmoidCrossEntropy requires operands have same shape, got {x} and {y}")
+            raise ValueError(
+                f"SigmoidCrossEntropy requires operands have same shape, "
+                f"got {x} and {y}")
 
     def compute_out_shape(self, x: Shape, y: Shape) -> Shape:
         return x
@@ -53,7 +55,8 @@ class SoftMaxCrossEntropyWithLogits(BinaryOp):
         self.keepdims = keepdims
 
     def reduce_max(self, x: Tensor):  # dim(x) = (x,y,z,t)
-        max_1 = np.max(x, axis=self.class_axis, keepdims=True)  # dims(max_1) =  (x,y,z,1)
+        # dims(max_1) =  (x,y,z,1)
+        max_1 = np.max(x, axis=self.class_axis, keepdims=True)
         return np.subtract(x, max_1)  # dim(out) = (x,y,z,t)
 
     def compute(self, x: Tensor, y: Tensor):  # dim(x) = (x,y,z,t) , dim(y) = t
@@ -63,14 +66,16 @@ class SoftMaxCrossEntropyWithLogits(BinaryOp):
         s = np.sum(e, axis=self.class_axis, keepdims=True)  # dims (x,y,z,1)
         self.activations = np.divide(e, s)  # dim(a) = (x,y,z,t)
 
-        self.output = -np.sum(y * np.log(self.activations), axis=self.class_axis, keepdims=self.keepdims)
+        self.output = -np.sum(y * np.log(self.activations),
+                              axis=self.class_axis, keepdims=self.keepdims)
 
     def partials(self, d_output):
-        return (self.activations - self.y) * d_output, 0  # # Do not use dLabels
+        return (self.activations - self.y) * d_output, 0  # Do not use dLabels
 
     def check_incoming_shapes(self, x: Shape, y: Shape):
         if x != y:
-            raise ValueError(f"SoftMaxCrossEntropy requires operand have same shape, got {x} and {y}")
+            raise ValueError(f"SoftMaxCrossEntropy requires operand have same "
+                             f"shape, got {x} and {y}")
 
     def compute_out_shape(self, x: Shape, y: Shape) -> Shape:
         return Shape.from_tuple(x[:-1])

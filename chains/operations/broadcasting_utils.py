@@ -17,7 +17,8 @@ def _sum_broadcast_positions(t: Tensor, in_shape: tuple, out_shape):
     pad = max(len(out_shape) - len(in_shape), 0)
     padded_mat_dims = ((1,) * pad) + in_shape
     zipped_shapes = enumerate(zip(padded_mat_dims, out_shape))
-    axis = tuple(i for i, (m_dim, t_dim) in zipped_shapes if m_dim == 1 and t_dim > 1)
+    axis = tuple(i for i, (m_dim, t_dim) in zipped_shapes if m_dim == 1
+                 and t_dim > 1)
     if len(axis) == 0:
         axis = None
     summed = np.sum(t, axis=axis, keepdims=True)

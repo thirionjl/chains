@@ -30,10 +30,13 @@ class AsScalar(UnaryOp):  # TODO Check root of graph is scalar
 
     def check_incoming_shapes(self, x: Shape):
         if len([d for d in x if d.is_unknown()]) > 0:
-            raise ValueError("AsScalar cannot accept tensors with unknown dimensions")
+            raise ValueError(
+                "AsScalar cannot accept tensors with unknown dimensions")
         sz = x.size()
         if sz != 1:
-            raise ValueError(f"AsScalar could only be used if input tensor contains 1 element only got {sz}")
+            raise ValueError(
+                f"AsScalar could only be used if input tensor contains 1 "
+                f"element only got {sz}")
 
     def compute_out_shape(self, x: Shape) -> Shape:
         return Shape.scalar()
@@ -56,9 +59,12 @@ class Transpose(UnaryOp):
     def check_incoming_shapes(self, x: Shape):
         if self.axes is None:
             if len(x) < 2:
-                raise ValueError(f"Transpose {self.axes} requires at least 2-D got {len(x)}")
+                raise ValueError(
+                    f"Transpose {self.axes} requires at least 2-D "
+                    f"got {len(x)}")
         elif len(x) != len(self.axes):
-            raise ValueError(f"Transpose {self.axes} requires an input tensor with {len(self.axes)} dimensions \
+            raise ValueError(f"Transpose {self.axes} requires an input tensor"
+                             f" with {len(self.axes)} dimensions \
             but got {len(x)}")
 
     def compute_out_shape(self, x_shape: Shape) -> Shape:
@@ -87,7 +93,8 @@ class MatMul(BinaryOp):
             but got a {len(y)}-D tensor as right operand")
 
         if x[1] != y[0]:
-            raise ValueError(f"Matrix multiplication requires that number of columns of left operand equals \
+            raise ValueError(f"Matrix multiplication requires that number of "
+                             f"columns of left operand equals \
             number of rows of right operand, but got {x[1]} and {y[0]}")
 
     def compute_out_shape(self, x: Shape, y: Shape) -> Shape:
@@ -160,7 +167,8 @@ class Reshape(UnaryOp):
     def __init__(self, shape: Shape):
         super().__init__()
         self.initial_shape = None
-        self.shape = shape  # TODO Refuse None in shape ! Could also add reshape as binary op for dynamic shape
+        self.shape = shape  # TODO Refuse None in shape ! Could also add
+        # reshape as binary op for dynamic shape
 
     def compute(self, x: Tensor):
         super().compute(x)

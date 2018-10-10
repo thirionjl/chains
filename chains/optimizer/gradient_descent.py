@@ -45,7 +45,8 @@ class GradientDescentOptimizer:
         initial_cost = self._graph.forward()
         gradient = self._graph.backward()
 
-        costs = {lr: self._estimate_cost(gradient, lr) for lr in learning_rates}
+        costs = \
+            {lr: self._estimate_cost(gradient, lr) for lr in learning_rates}
         best_lr = min(costs, key=costs.get)
 
         if costs[best_lr] < initial_cost + sensibility:

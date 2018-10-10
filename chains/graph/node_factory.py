@@ -25,7 +25,10 @@ def var(name: str, initializer: init.VarInitializer, shape, dtype=np.float64):
     if not isinstance(initializer, init.VarInitializer):
         raise ValueError('Var should be passed a VarInitializer subclass')
 
-    return g.Node(base.Var(initializer=initializer, shape=Shape.from_tuple(shape), dtype=dtype), name=name)
+    return g.Node(base.Var(initializer=initializer,
+                           shape=Shape.from_tuple(shape),
+                           dtype=dtype),
+                  name=name)
 
 
 def placeholder(shape, dtype=np.float64):

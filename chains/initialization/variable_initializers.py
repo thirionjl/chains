@@ -19,9 +19,11 @@ class ConstantInitializer(VarInitializer):
 
     def initialize(self, shape, dtype):
         if self.shape != shape:
-            raise ValueError(f"Constant initialization does not match required shape {shape}")
+            raise ValueError(f"Constant initialization does not match "
+                             f"required shape {shape}")
         if self.dtype != dtype:
-            raise ValueError(f"Constant initialization does not match required dtype {shape}")
+            raise ValueError(f"Constant initialization does not match "
+                             f"required dtype {shape}")
         return self.value
 
 
@@ -41,7 +43,8 @@ class RandomNormalInitializer(VarInitializer):
 
     def initialize(self, shape, dtype):
         if dtype != np.float64:
-            raise ValueError(f"Random initialization does produce only np.float64 but got var with dtype={dtype}")
+            raise ValueError(f"Random initialization does produce only "
+                             f"np.float64 but got var with dtype={dtype}")
         return np.random.randn(*shape) * self.scale
 
 

@@ -43,7 +43,8 @@ class Dim:
     def is_broadcast_compatible(self, other):
         return self.value == 1 \
                or other.value == 1 \
-               or (self.is_concrete() and other.is_concrete() and self.value == other.value)
+               or (self.is_concrete() and other.is_concrete() and
+                   self.value == other.value)
 
     def is_assignable_to(self, other):
         return (self == other) or (self.is_concrete() and other.is_unknown())
@@ -79,7 +80,8 @@ class Dim:
 class Shape(tuple):
 
     def __new__(cls, *args):
-        dim_args = tuple(arg if isinstance(arg, Dim) else Dim(arg) for arg in args)
+        dim_args = tuple(arg if isinstance(arg, Dim)
+                         else Dim(arg) for arg in args)
         return tuple.__new__(cls, dim_args)
 
     @classmethod
@@ -95,11 +97,13 @@ class Shape(tuple):
         return cls.from_tuple(np.shape(t))
 
     def is_broadcast_compatible(self, other):
-        return all(m.is_broadcast_compatible(n) for m, n in self.zip_dimensions(self, other))
+        return all(m.is_broadcast_compatible(n) for m, n in
+                   self.zip_dimensions(self, other))
 
     @staticmethod
     def zip_dimensions(a, b):
-        reversed_zip = list(zip_longest(reversed(a), reversed(b), fillvalue=Dim.of(1)))
+        reversed_zip = list(zip_longest(reversed(a), reversed(b),
+                                        fillvalue=Dim.of(1)))
         return reversed(reversed_zip)
 
     def broadcast(self, other):
@@ -145,6 +149,8 @@ class Shape(tuple):
 
     def check_axis_index(self, axis: int) -> bool:
         if axis >= 0 and not (0 <= axis < self.ndim):
-            raise ValueError(f"axis is out of bounds of shape {self} got {axis}")
+            raise ValueError(f"axis is out of bounds of shape {self} "
+                             f"got {axis}")
         if axis < 0 and not (-self.ndim <= axis < 0):
-            raise ValueError(f"axis is out of bounds of shape {self} got {axis}")
+            raise ValueError(f"axis is out of bounds of shape {self} "
+                             f"got {axis}")

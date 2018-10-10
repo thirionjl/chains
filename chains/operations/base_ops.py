@@ -61,7 +61,9 @@ class NoOp(Op):
             raise ValueError("A settable cannot be set with None")
         value_shape = Shape.of_tensor(self.output)
         if not value_shape.is_assignable_to(self.shape):
-            raise ValueError(f"{type(self)} accepts values compatible with shape {self.shape}, but got {value_shape}")
+            raise ValueError(
+                f"{type(self)} accepts values compatible with "
+                f"shape {self.shape}, but got {value_shape}")
 
 
 class Var(NoOp):
@@ -72,13 +74,15 @@ class Var(NoOp):
         if not isinstance(shape, Shape):
             raise ValueError("Did not get a shape object")
         if shape.is_unknown():
-            raise ValueError("Var should have only known dimensions in declared shape")
+            raise ValueError(
+                "Var should have only known dimensions in declared shape")
 
         self.initializer = initializer
         super().__init__(shape, dtype)
 
     def initialize(self):
-        self.output = self.initializer.initialize(self.shape.to_numpy(), self.dtype)
+        self.output = self.initializer.initialize(self.shape.to_numpy(),
+                                                  self.dtype)
         self.check()
 
 
@@ -96,7 +100,8 @@ class Constant(NoOp):
 class ElementWiseBinaryOp(BinaryOp, abc.ABC):
     def check_incoming_shapes(self, x: Shape, y: Shape):
         if not x.is_broadcast_compatible(y):
-            raise ValueError(f"Shapes {x} and {y} cannot be broadcast together")
+            raise ValueError(
+                f"Shapes {x} and {y} cannot be broadcast together")
 
     def compute_out_shape(self, x: Shape, y: Shape) -> Shape:
         return x.broadcast(y)

@@ -2,7 +2,8 @@ from collections import deque, defaultdict
 from typing import Dict
 from typing import Set
 
-from chains.operations import arithmetic_ops as ops, mat_ops as mat, base_ops as base
+from chains.operations import arithmetic_ops as ops, mat_ops as mat, \
+    base_ops as base
 from chains.tensor import tensor as t
 
 
@@ -21,7 +22,7 @@ class Node:
     _name_generator = NameGenerator()
     _all_node_names: Set[str] = set()
 
-    def __init__(self, op: base.Op, incoming_nodes=[], name: str = None):  # TODO Tuple
+    def __init__(self, op: base.Op, incoming_nodes=[], name: str = None):
         incoming_shapes = tuple(n.shape for n in incoming_nodes)
         op.check_incoming_shapes(*incoming_shapes)
         self.shape = op.compute_out_shape(*incoming_shapes)
@@ -75,15 +76,18 @@ class Node:
         elif isinstance(other, Node):
             return Node(ops.Add(), [self, Node(ops.Negate(), [other])])
         else:
-            self.raise_unsupported_data_type_for_operation("subtraction", other)
+            self.raise_unsupported_data_type_for_operation("subtraction",
+                                                           other)
 
     def __rsub__(self, other):
         if t.is_tensor(other):
-            return Node(ops.Add(), [Node(ops.Constant(other)), Node(ops.Negate(), [self])])
+            return Node(ops.Add(), [Node(ops.Constant(other)),
+                                    Node(ops.Negate(), [self])])
         elif isinstance(other, Node):
             return Node(ops.Add(), [other, Node(ops.Negate(), [self])])
         else:
-            self.raise_unsupported_data_type_for_operation("subtraction", other)
+            self.raise_unsupported_data_type_for_operation("subtraction",
+                                                           other)
 
     def __mul__(self, other):
         if t.is_tensor(other):
@@ -91,7 +95,8 @@ class Node:
         elif isinstance(other, Node):
             return Node(ops.Mul(), [self, other])
         else:
-            self.raise_unsupported_data_type_for_operation("multiplication", other)
+            self.raise_unsupported_data_type_for_operation("multiplication",
+                                                           other)
 
     def __rmul__(self, other):
         return self.__mul__(other)
@@ -111,14 +116,16 @@ class Node:
         elif isinstance(other, Node):
             return Node(mat.MatMul(), [self, other])
         else:
-            self.raise_unsupported_data_type_for_operation("matrix multiplication", other)
+            self.raise_unsupported_data_type_for_operation(
+                "matrix multiplication", other)
 
     def T(self):
         return Node(mat.Transpose(), [self])
 
     @staticmethod
     def raise_unsupported_data_type_for_operation(op_name, other):
-        raise ValueError(f"Type {type(other)} is not supported type for {op_name}")
+        raise ValueError(
+            f"Type {type(other)} is not supported type for {op_name}")
 
     def compute(self):
         args = map(lambda n: n.value, self.incoming_nodes)
@@ -137,7 +144,8 @@ class Node:
 
     @value.setter
     def value(self, value):
-        self._op.output = value  # On critical path: do not add to much checks here
+        # On critical path: do not add to much checks here
+        self._op.output = value
 
     def check_is_set(self):
         return self._op.check()
@@ -159,13 +167,15 @@ class Node:
         return self.is_var() or self.is_placeholder()
 
     def is_computation(self):
-        return not (self.is_var() or self.is_placeholder() or self.is_constant())
+        return not (
+            self.is_var() or self.is_placeholder() or self.is_constant())
 
     def initialize(self):
         if self.is_var():
             self._op.initialize()
         else:
-            raise ValueError(f"Node {self} is not a variable and could not be initialized")
+            raise ValueError(
+                f"Node {self} is not a variable and could not be initialized")
 
 
 class Graph:
@@ -174,8 +184,10 @@ class Graph:
         self._root = r
         self._forward_path = self._forward_prop_path(r)
         self.variables = {n for n in self._forward_path if n.is_var()}
-        self._placeholders = {n for n in self._forward_path if n.is_placeholder()}
-        self._backward_path = self._backward_prop_path(self.variables, self._forward_path)
+        self._placeholders = {n for n in self._forward_path if
+                              n.is_placeholder()}
+        self._backward_path = self._backward_prop_path(self.variables,
+                                                       self._forward_path)
 
     @staticmethod
     def _forward_prop_path(root):
@@ -183,8 +195,10 @@ class Graph:
 
     @staticmethod
     def _backward_prop_path(variables, fw_path):
-        var_dependencies = Graph._topological_sort(variables, lambda n: n.outgoing_nodes)
-        return [n for n in var_dependencies if n in fw_path and n.is_computation()]
+        var_dependencies = Graph._topological_sort(variables,
+                                                   lambda n: n.outgoing_nodes)
+        return [n for n in var_dependencies if
+                n in fw_path and n.is_computation()]
 
     @staticmethod
     def _topological_sort(roots, children_fct):
@@ -249,6 +263,7 @@ class Graph:
         self._check_placeholders()
 
     def initialize_variables(self):
-        # Sort initializations so that it is deterministic in case of random initializers
+        # Sort initializations so that it is deterministic in
+        # case of random initializers
         for v in sorted(self.variables, key=lambda n: n.name):
             v.initialize()
