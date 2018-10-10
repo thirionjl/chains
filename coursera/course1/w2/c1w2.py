@@ -1,13 +1,14 @@
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
-import cProfile
 
+import coursera.course1.w2.lr_utils as cs
 from chains.graph import node_factory as f, structure as g
 from chains.initialization import variable_initializers as init
 from chains.layers import fully_connected as fc
 from chains.optimizer import gradient_descent as gd
 from chains.tensor.tensor import Dim
-from coursera.course1.w2.lr_utils import load_dataset
 from coursera.utils import binary_accuracy, plot_costs
 
 ITERATIONS_UNIT = 100
@@ -25,7 +26,7 @@ class LogisticRegressionModel:
         self.X = f.placeholder(shape=(self.n, self.m))
         self.Y = f.placeholder(shape=(1, self.m))
 
-        self.logits = fc.fully_connected(self.X, self.W, self.b)
+        self.logits = fc.fully_connected(self.X, self.W, self.b, first_layer=True)
         self.loss = f.sigmoid_cross_entropy(self.logits, self.Y)
         self.predictions = f.is_greater_than(f.sigmoid(self.logits), 0.5)
 
@@ -54,7 +55,7 @@ class LogisticRegressionModel:
 
 
 if __name__ == "__main__":
-    train_set_x_orig, train_set_y, test_set_x_orig, test_set_y, classes = load_dataset()
+    train_set_x_orig, train_set_y, test_set_x_orig, test_set_y, classes = cs.load_dataset()
 
     print("===== Data set exploration =====")
     print("train_set_x_orig.shape=", train_set_x_orig.shape)
@@ -98,10 +99,9 @@ if __name__ == "__main__":
     model = LogisticRegressionModel(pixels)
     lr = 0.005
 
-    pr = cProfile.Profile()
-    pr.enable()
+    start_time = time.time()
     costs = model.train(train_set_x, train_set_y, learning_rate=lr, num_iterations=2000, print_cost=True)
-    pr.disable()
+    print("training time = ", time.time() - start_time)
 
     plot_costs(costs, unit=ITERATIONS_UNIT, learning_rate=lr)
 
@@ -124,5 +124,3 @@ if __name__ == "__main__":
     plt.imshow(test_set_x[:, index].reshape((num_px, num_px, 3)))
     plt.show()
 
-    pr.dump_stats(f"stats_logistic.prof")
-    pr.create_stats()

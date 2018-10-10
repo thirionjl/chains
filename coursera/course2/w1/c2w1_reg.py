@@ -9,7 +9,6 @@ from chains.layers import fully_connected as fc
 from chains.operations import regularization_ops as reg
 from chains.optimizer import gradient_descent as gd
 from chains.tensor.tensor import Dim
-
 from coursera.course2.w1.reg_utils import *
 
 
@@ -59,7 +58,7 @@ class NNModel:
 
     def __init__(self, features_count, lambd=0):
         hidden_layers_sizes = [20, 3]
-        self.weight_initializer = init.XavierInitializer(seed=3)
+        self.weight_initializer = init.XavierInitializer()
 
         # Number of examples
         self.m = Dim.unknown()
@@ -94,16 +93,16 @@ class NNModel:
         self.cost_graph = g.Graph(loss)
         self.prediction_graph = g.Graph(predictions)
 
-    def fully_connected_layer(self, features, cnt_features, cnt_neurons, l):
-        weights = f.var("W" + str(l + 1), self.weight_initializer, shape=(cnt_neurons, cnt_features))
-        biases = f.var("b" + str(l + 1), init.ZeroInitializer(), shape=(cnt_neurons, 1))
-        return fc.fully_connected(features, weights, biases), weights, biases
+    def fully_connected_layer(self, features, cnt_features, cnt_neurons, layer_num):
+        weights = f.var("W" + str(layer_num + 1), self.weight_initializer, shape=(cnt_neurons, cnt_features))
+        biases = f.var("b" + str(layer_num + 1), init.ZeroInitializer(), shape=(cnt_neurons, 1))
+        return fc.fully_connected(features, weights, biases, first_layer=(layer_num == 0)), weights, biases
 
     def train(self, x_train, y_train, *,
               num_iterations=30_000,
               learning_rate=0.3,
               print_cost=True):
-
+        init.seed(3)
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
         optimizer = gd.GradientDescentOptimizer(self.cost_graph, learning_rate=learning_rate)

@@ -2,27 +2,22 @@ import numpy as np
 
 import chains.graph.structure as g
 import chains.operations.base_ops as ops
-from chains.graph import node_factory as f
 from chains.tensor.tensor import Tensor, Shape
 
 
-def fully_connected2(inputs: g.Node, weights: g.Node, bias: g.Node) -> g.Node:
-    # bias_reshaped = f.reshape(Shape(weights.shape[0], 1), bias)
-    return f.mat_mul(weights, inputs) + bias
-
-
-def fully_connected(inputs: g.Node, weights: g.Node, bias: g.Node) -> g.Node:
-    return g.Node(FullyConnected(), [inputs, weights, bias])
+def fully_connected(inputs: g.Node, weights: g.Node, bias: g.Node, *, first_layer=False) -> g.Node:
+    return g.Node(FullyConnected(not first_layer), [inputs, weights, bias])
 
 
 class FullyConnected(ops.Op):
 
-    def __init__(self):
+    def __init__(self, feature_derivative=True):
         super().__init__()
         self.bias_shape = None
         self.features = None
         self.weights = None
         self.bias = None
+        self.feature_derivative = feature_derivative
 
     @staticmethod
     def check_incoming_shapes(f: Shape, w: Shape, b: Shape):
@@ -55,5 +50,5 @@ class FullyConnected(ops.Op):
     def partials(self, d_output):
         d_bias = np.sum(d_output, axis=1, keepdims=True)
         d_weights = d_output @ self.features.T
-        d_features = self.weights.T @ d_output
+        d_features = self.weights.T @ d_output if self.feature_derivative else 0
         return d_features, d_weights, d_bias  # np.reshape(d_bias, self.bias_shape)

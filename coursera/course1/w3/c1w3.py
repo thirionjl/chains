@@ -1,12 +1,14 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
+from chains.graph import node_factory as f, structure as g
+from chains.initialization import variable_initializers as init
+from chains.layers import fully_connected as fc
+from chains.optimizer import gradient_descent as gd
+from chains.tensor.tensor import Dim
 from coursera.course1.w3.planar_utils import plot_decision_boundary, load_planar_dataset
-from graph import node_factory as f, structure as g
-from initialization import variable_initializers as init
-from layers import fully_connected as fc
-from optimizer import gradient_descent as gd
-from tensor.tensor import Dim
+from coursera.utils import binary_accuracy
+
+ITERATION_UNIT = 100
 
 
 class ShallowNNModel:
@@ -18,17 +20,19 @@ class ShallowNNModel:
         self.n = features_count
         # Number of hidden units
         self.h = hidden_layers_size
+        weight_initializer = init.RandomNormalInitializer()
+        bias_initializer = init.ZeroInitializer()
 
         # Placeholders and Vars
-        self.W1 = f.var("W1", init.RandomNormalInitializer(), shape=(self.h, self.n))
-        self.b1 = f.var("b1", init.ZeroInitializer(), shape=(self.h, 1))
-        self.W2 = f.var("W2", init.RandomNormalInitializer(), shape=(1, self.h))
-        self.b2 = f.var("b2", init.ZeroInitializer(), shape=(1, 1))
+        self.W1 = f.var("W1", weight_initializer, shape=(self.h, self.n))
+        self.b1 = f.var("b1", bias_initializer, shape=(self.h, 1))
+        self.W2 = f.var("W2", weight_initializer, shape=(1, self.h))
+        self.b2 = f.var("b2", bias_initializer, shape=(1, 1))
         self.X = f.placeholder(shape=(self.n, self.m))
         self.Y = f.placeholder(shape=(1, self.m))
 
         # Nodes
-        lin_1 = fc.fully_connected(self.X, self.W1, self.b1)
+        lin_1 = fc.fully_connected(self.X, self.W1, self.b1, first_layer=True)
         act_1 = f.tanh(lin_1)
         lin_2 = fc.fully_connected(act_1, self.W2, self.b2)
         loss = f.sigmoid_cross_entropy(lin_2, self.Y)
@@ -38,24 +42,19 @@ class ShallowNNModel:
         self.cost_graph = g.Graph(loss)
         self.prediction_graph = g.Graph(predictions)
 
-    def train(self, x_train, y_train, num_iterations=10000, learning_rate=20, print_cost=False):
-        init.RandomNormalInitializer.seed(2)
-
+    def train(self, x_train, y_train, num_iterations=10_000, learning_rate=1.2, print_cost=False):
+        init.seed(3)
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
         optimizer = gd.GradientDescentOptimizer(self.cost_graph, learning_rate=learning_rate)
         costs = []
-        for i in range(num_iterations + 1):
+        for i in range(num_iterations):
             optimizer.run()
 
-            if i % 100 == 0:
+            if i % ITERATION_UNIT == 0:
                 costs.append(optimizer.cost)
 
-            if i % 1_000 == 0:
-                optimizer.learning_rate = optimizer.find_acceptable_learning_rate(
-                    learning_rates=[20, 10, 5, 4, 2, 1, 0.5])
-
-            if print_cost and i % 1000 == 0:
+            if print_cost and i % ITERATION_UNIT == 0:
                 print(f"Cost after iteration {i}: {optimizer.cost}")
 
         return costs
@@ -63,10 +62,6 @@ class ShallowNNModel:
     def predict(self, x_test):
         self.prediction_graph.placeholders = {self.X: x_test}
         return self.prediction_graph.evaluate()
-
-
-def accuracy(actual, expected):
-    return 100 - np.mean(np.abs(actual - expected)) * 100
 
 
 if __name__ == "__main__":
@@ -78,7 +73,7 @@ if __name__ == "__main__":
 
     # Test different hidden layer sizes
     plt.figure()
-    hidden_layer_sizes = [1, 2, 3, 4, 5, 20, 50, 100]
+    hidden_layer_sizes = [1, 2, 3, 4, 5, 20, 50]
     for i, h in enumerate(hidden_layer_sizes):
         print(f"\n\n>>> Testing with hidden layer of size {h}")
 
@@ -88,7 +83,7 @@ if __name__ == "__main__":
 
         # Predict
         train_predictions = model.predict(X)
-        train_accuracy = accuracy(actual=train_predictions, expected=Y)
+        train_accuracy = binary_accuracy(actual=train_predictions, expected=Y)
         print(f"Train accuracy = {train_accuracy}%")
 
         # Plot

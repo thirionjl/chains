@@ -1,26 +1,22 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
-from coursera.utils import binary_accuracy
+from chains.graph import node_factory as f, structure as g
+from chains.initialization import variable_initializers as init
+from chains.layers import fully_connected as fc
+from chains.optimizer import gradient_descent as gd
+from chains.tensor.tensor import Dim
 from coursera.course1.w4.dnn_app_utils_v3 import load_data
-from graph import node_factory as f, structure as g
-from initialization import variable_initializers as init
-from layers import fully_connected as fc
-from optimizer import gradient_descent as gd
-from tensor.tensor import Dim
+from coursera.utils import binary_accuracy, plot_costs
+
+ITERATION_UNIT = 100
 
 
 class DeepNNModel:
 
     def __init__(self, features_count, hidden_layers_sizes=[]):
-        # Number of examples
         self.m = Dim.unknown()
-        # Number of features
         self.n = features_count
-        # Number of hidden units
         self.L = len(hidden_layers_sizes)
-
-        # Placeholders and Vars
         self.X = f.placeholder(shape=(self.n, self.m))
         self.Y = f.placeholder(shape=(1, self.m))
 
@@ -42,24 +38,24 @@ class DeepNNModel:
         self.prediction_graph = g.Graph(predictions)
 
     @staticmethod
-    def fully_connected_layer(features, cnt_features, cnt_neurons, l):
-        # Enorme difference entre RandomNormalInitializer avec et sans [Sqrt] => apprentissage très lent !
-        weights = f.var("W" + str(l + 1), init.HeInitializer(), shape=(cnt_neurons, cnt_features))
-        biases = f.var("b" + str(l + 1), init.ZeroInitializer(), shape=(cnt_neurons, 1))
-        return fc.fully_connected(features, weights, biases)
+    def fully_connected_layer(features, cnt_features, cnt_neurons, layer_number):
+        weights = f.var("W" + str(layer_number + 1), init.XavierInitializer(), shape=(cnt_neurons, cnt_features))
+        biases = f.var("b" + str(layer_number + 1), init.ZeroInitializer(), shape=(cnt_neurons, 1))
+        return fc.fully_connected(features, weights, biases, first_layer=(layer_number == 0))
 
-    def train(self, x_train, y_train, *, num_iterations=5_000, learning_rate=0.0075, print_cost=False):
+    def train(self, x_train, y_train, *, num_iterations=2_500, learning_rate=0.0075, print_cost=False):
+        init.seed(1)
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
         optimizer = gd.GradientDescentOptimizer(self.cost_graph, learning_rate=learning_rate)
         costs = []
-        for i in range(num_iterations + 1):
+        for i in range(num_iterations):
             optimizer.run()
 
-            if i % 100 == 0:
+            if i % ITERATION_UNIT == 0:
                 costs.append(optimizer.cost)
 
-            if print_cost and i % 100 == 0:
+            if print_cost and i % ITERATION_UNIT == 0:
                 print(f"Cost after iteration {i}: {optimizer.cost}")
 
         return costs
@@ -69,16 +65,10 @@ class DeepNNModel:
         return self.prediction_graph.evaluate()
 
 
-
-
-
 def show_image(i, im_classes, x, y):
     plt.imshow(x[i])
     plt.show()
     print("y = " + str(y[0, i]) + ". It's a " + im_classes[y[0, i]].decode("utf-8") + " picture.")
-
-
-
 
 
 if __name__ == "__main__":
@@ -130,7 +120,7 @@ if __name__ == "__main__":
         print(f"\n\n>>> Testing with hidden layers of dimensions {hidden_layer_dims}")
         model = DeepNNModel(n_x, hidden_layer_dims)
         costs = model.train(train_x, train_y, print_cost=True)
-        plot_costs(costs)
+        plot_costs(costs, unit=ITERATION_UNIT, learning_rate=0.0075)
 
         # Predict
         train_predictions = model.predict(train_x)

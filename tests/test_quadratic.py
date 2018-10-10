@@ -6,7 +6,7 @@ from chains.graph.structure import Graph
 
 
 def test_quadratic():
-    x = nf.initialized_var('x', np.random.randn(3, 1))
+    x = nf.initialized_var('x', np.array([[0.07], [0.4], [0.1]]))
     A = nf.constant(np.array([[2, -1, -2], [-1, 1, 0], [-2, 0, 4]]))
     B = nf.constant(np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
     b = nf.placeholder(shape=(3, 1))

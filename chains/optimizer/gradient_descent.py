@@ -16,7 +16,8 @@ class GradientDescentOptimizer:
             self.learning_rate = learning_rate
 
     def _save(self):
-        self._variables_before = dict((vn, np.copy(vn.value)) for vn in self._graph.variables)
+        self._variables_before = \
+            dict((vn, np.copy(vn.value)) for vn in self._graph.variables)
         self._cost_before = self._cost
 
     def _restore(self):
@@ -28,19 +29,7 @@ class GradientDescentOptimizer:
         c = self._graph.forward()
         gradient = self._graph.backward()
         alpha = self.learning_rate
-
-        # self._save()
-
         self._apply_gradient(gradient, alpha)
-
-
-        # if c > self._cost + sensibility:
-        #     self._restore()
-        #     smaller_lrs = self._candidate_lrs(max_lr=self.learning_rate)
-        #     self.learning_rate = self.find_acceptable_learning_rate(list(smaller_lrs))
-        #     print(f"Trying new learning rate {self.learning_rate}")
-        #     c = self._graph.forward()
-
         self._cost = c
         return gradient, c
 
@@ -48,7 +37,8 @@ class GradientDescentOptimizer:
         for var_node in self._graph.variables:
             var_node.value += - lr * gradient[var_node]
 
-    def find_acceptable_learning_rate(self, learning_rates=None, sensibility=1e-6):
+    def find_acceptable_learning_rate(self, learning_rates=None,
+                                      sensibility=1e-6):
         if learning_rates is None:
             learning_rates = list(self._candidate_lrs())
 
@@ -61,7 +51,8 @@ class GradientDescentOptimizer:
         if costs[best_lr] < initial_cost + sensibility:
             return best_lr
         else:
-            raise RuntimeError("Learning rates exhausted. Could not get down cost function")
+            raise RuntimeError("Learning rates exhausted. Could not get "
+                               "down cost function")
 
     def _estimate_cost(self, gradient, lr):
         self._save()

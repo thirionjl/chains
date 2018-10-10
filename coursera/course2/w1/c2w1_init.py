@@ -1,23 +1,25 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
+from chains.graph import node_factory as f, structure as g
+from chains.initialization import variable_initializers as init
+from chains.layers import fully_connected as fc
+from chains.optimizer import gradient_descent as gd
+from chains.tensor.tensor import Dim
 from coursera.course2.w1.init_utils import load_dataset, plot_decision_boundary
-from graph import node_factory as f, structure as g
-from initialization import variable_initializers as init
-from layers import fully_connected as fc
-from optimizer import gradient_descent as gd
-from tensor.tensor import Dim
+from coursera.utils import binary_accuracy, plot_costs
+
+ITERATION_UNIT = 1000
 
 
 class NNModel:
-    inits = {
-        "he": init.HeInitializer(seed=3),
-        "random": init.RandomNormalInitializer(20, seed=3),
+    initializers = {
         "zeros": init.ZeroInitializer(),
+        "random": init.RandomNormalInitializer(20),
+        "he": init.HeInitializer(),
     }
 
     def __init__(self, features_count, initializer_name, hidden_layers_sizes=[10, 5]):
-        self.weight_initializer = self.inits.get(initializer_name)
+        self.weight_initializer = self.initializers.get(initializer_name)
         # Number of examples
         self.m = Dim.unknown()
         # Number of features
@@ -46,16 +48,17 @@ class NNModel:
         self.cost_graph = g.Graph(loss)
         self.prediction_graph = g.Graph(predictions)
 
-    def fully_connected_layer(self, features, cnt_features, cnt_neurons, l):
-        weights = f.var("W" + str(l + 1), self.weight_initializer, shape=(cnt_neurons, cnt_features))
-        biases = f.var("b" + str(l + 1), init.ZeroInitializer(), shape=(cnt_neurons, 1))
-        return fc.fully_connected(features, weights, biases)
+    def fully_connected_layer(self, features, cnt_features, cnt_neurons, layer_num):
+        weights = f.var("W" + str(layer_num + 1), self.weight_initializer, shape=(cnt_neurons, cnt_features))
+        biases = f.var("b" + str(layer_num + 1), init.ZeroInitializer(), shape=(cnt_neurons, 1))
+        return fc.fully_connected(features, weights, biases, first_layer=(layer_num == 0))
 
     def train(self, x_train, y_train, *,
-              num_iterations=10_000,
+              num_iterations=15_000,
               learning_rate=0.01,
               print_cost=True):
 
+        init.seed(3)
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
         optimizer = gd.GradientDescentOptimizer(self.cost_graph, learning_rate=learning_rate)
@@ -63,7 +66,7 @@ class NNModel:
         for i in range(num_iterations + 1):
             optimizer.run()
 
-            if i % 100 == 0:
+            if i % 1000 == 0:
                 costs.append(optimizer.cost)
 
             if print_cost and i % 1000 == 0:
@@ -76,22 +79,10 @@ class NNModel:
         return self.prediction_graph.evaluate()
 
 
-def accuracy(actual, expected):
-    return 100 - np.mean(np.abs(actual - expected)) * 100
-
-
 def show_image(i, im_classes, x, y):
     plt.imshow(x[i])
     plt.show()
     print("y = " + str(y[0, i]) + ". It's a " + im_classes[y[0, i]].decode("utf-8") + " picture.")
-
-
-def plot_costs(costs):
-    plt.plot(np.squeeze(costs))
-    plt.ylabel('cost')
-    plt.xlabel('iterations (per 1000)')
-    plt.title("Learning")
-    plt.show()
 
 
 def plot_boundary(init_name, m, xt, yt):
@@ -115,19 +106,19 @@ if __name__ == "__main__":
     m_test = test_x.shape[1]
     n = train_x.shape[0]
 
-    for initializer in NNModel.inits.keys():
+    for initializer in NNModel.initializers.keys():
         # Model
         model = NNModel(n, initializer)
         costs = model.train(train_x, train_y, print_cost=True)
-        plot_costs(costs)
+        plot_costs(costs, unit=ITERATION_UNIT, learning_rate=0.01)
 
         # Predict
         train_predictions = model.predict(train_x)
-        train_accuracy = accuracy(actual=train_predictions, expected=train_y)
+        train_accuracy = binary_accuracy(actual=train_predictions, expected=train_y)
         print(f"Train accuracy = {train_accuracy}%")
 
         test_predictions = model.predict(test_x)
-        test_accuracy = accuracy(actual=test_predictions, expected=test_y)
+        test_accuracy = binary_accuracy(actual=test_predictions, expected=test_y)
         print(f"Test accuracy = {test_accuracy}%")
 
         # Plot
