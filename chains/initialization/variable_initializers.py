@@ -32,10 +32,6 @@ class ZeroInitializer(VarInitializer):
         return np.zeros(shape, dtype=dtype)
 
 
-def seed(seed):
-    np.random.seed(seed)
-
-
 class RandomNormalInitializer(VarInitializer):
 
     def __init__(self, scale: float = 0.01):

@@ -1,20 +1,49 @@
 import numpy as np
 
+from chains import env
 from chains.operations import regularization_ops as reg
 from chains.tensor.tensor import Shape
 
 
-def test_dropout():
-    dropout = reg.Dropout(keep_prob=0.5, seed=1)
-    dropout.compute(np.array([[1, 2, 3], [4, 5, 6]]))
-    gradient = dropout.partials(1)[0]
+def test_coursera_dropout_forward():
+    np.random.seed(1)
+    dropout = reg.Dropout(keep_prob=0.7)
+    dropout.compute(np.array([[0., 3.32524635, 2.13994541, 2.60700654, 0.],
+                              [0., 4.1600994, 0.79051021, 1.46493512, 0.]]))
 
-    np.testing.assert_equal(dropout.output, np.array([[1, 2, 0], [0, 5, 6]]))
-    np.testing.assert_equal(gradient, np.array([[1, 1, 0], [0, 1, 1]]))
+    np.testing.assert_equal(dropout.mask,
+                            np.array([[True, False, True, True, True],
+                                      [True, True, True, True, True]]))
+    np.testing.assert_allclose(dropout.output,
+                               np.array([[0., 0., 3.05706487, 3.72429505, 0.],
+                                         [0., 5.94299915, 1.1293003,
+                                          2.09276446,
+                                          0.]]))
+
+
+def test_coursera_dropout_backward():
+    np.random.seed(1)
+    dropout = reg.Dropout(keep_prob=0.8)
+
+    dropout.mask = np.array([[True, False, True, False, True],
+                             [False, True, False, True, True],
+                             [False, False, True, False, False]])
+
+    d = dropout.partials(np.array(
+        [[0.46544685, 0.34576201, -0.00239743, 0.34576201, -0.22172585],
+         [0.57248826, 0.42527883, -0.00294878, 0.42527883, -0.27271738],
+         [0.45465921, 0.3377483, -0.00234186, 0.3377483, -0.21658692]]))[0]
+
+    np.testing.assert_allclose(d, np.array([[0.58180856, 0., -0.00299679, 0.,
+                                             -0.27715731],
+                                            [0., 0.53159854, -0., 0.53159854,
+                                             -0.34089673],
+                                            [0., 0., -0.00292733, 0., -0.]]),
+                               atol=1e-8)
 
 
 def test_l2_regularization_coursera_test_case():
-    np.random.seed(1)
+    env.seed(1)
     y_assess = np.array([[1, 1, 0, 1, 0]])
     w1 = np.random.randn(2, 3)
     np.random.randn(2, 1)

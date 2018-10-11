@@ -5,6 +5,7 @@ from chains.initialization import variable_initializers as init
 from chains.layers import fully_connected as fc
 from chains.optimizer import gradient_descent as gd
 from chains.tensor.tensor import Dim
+from chains import env
 from coursera.course1.w4.dnn_app_utils_v3 import load_data
 from coursera.utils import binary_accuracy, plot_costs
 
@@ -38,16 +39,22 @@ class DeepNNModel:
         self.prediction_graph = g.Graph(predictions)
 
     @staticmethod
-    def fully_connected_layer(features, cnt_features, cnt_neurons, layer_number):
-        weights = f.var("W" + str(layer_number + 1), init.XavierInitializer(), shape=(cnt_neurons, cnt_features))
-        biases = f.var("b" + str(layer_number + 1), init.ZeroInitializer(), shape=(cnt_neurons, 1))
-        return fc.fully_connected(features, weights, biases, first_layer=(layer_number == 0))
+    def fully_connected_layer(features, cnt_features, cnt_neurons,
+                              layer_number):
+        weights = f.var("W" + str(layer_number + 1), init.XavierInitializer(),
+                        shape=(cnt_neurons, cnt_features))
+        biases = f.var("b" + str(layer_number + 1), init.ZeroInitializer(),
+                       shape=(cnt_neurons, 1))
+        return fc.fully_connected(features, weights, biases,
+                                  first_layer=(layer_number == 0))
 
-    def train(self, x_train, y_train, *, num_iterations=2_500, learning_rate=0.0075, print_cost=False):
-        init.seed(1)
+    def train(self, x_train, y_train, *, num_iterations=2_500,
+              learning_rate=0.0075, print_cost=False):
+        env.seed(1)
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
-        optimizer = gd.GradientDescentOptimizer(self.cost_graph, learning_rate=learning_rate)
+        optimizer = gd.GradientDescentOptimizer(self.cost_graph,
+                                                learning_rate=learning_rate)
         costs = []
         for i in range(num_iterations):
             optimizer.run()
@@ -68,7 +75,8 @@ class DeepNNModel:
 def show_image(i, im_classes, x, y):
     plt.imshow(x[i])
     plt.show()
-    print("y = " + str(y[0, i]) + ". It's a " + im_classes[y[0, i]].decode("utf-8") + " picture.")
+    print("y = " + str(y[0, i]) + ". It's a " + im_classes[y[0, i]].decode(
+        "utf-8") + " picture.")
 
 
 if __name__ == "__main__":
@@ -89,7 +97,8 @@ if __name__ == "__main__":
 
     print("Number of training examples: " + str(m_train))
     print("Number of testing examples: " + str(m_test))
-    print("Each image is of size: (" + str(num_px) + ", " + str(num_px) + ", 3)")
+    print(
+        "Each image is of size: (" + str(num_px) + ", " + str(num_px) + ", 3)")
     print("train_x_orig shape: " + str(train_x_orig.shape))
     print("train_y shape: " + str(train_y.shape))
     print("test_x_orig shape: " + str(test_x_orig.shape))
@@ -117,16 +126,19 @@ if __name__ == "__main__":
     ]
 
     for hidden_layer_dims in layer_configurations:
-        print(f"\n\n>>> Testing with hidden layers of dimensions {hidden_layer_dims}")
+        print(
+            f"\n\n>>> Testing with hidden layers of dimensions {hidden_layer_dims}")
         model = DeepNNModel(n_x, hidden_layer_dims)
         costs = model.train(train_x, train_y, print_cost=True)
         plot_costs(costs, unit=ITERATION_UNIT, learning_rate=0.0075)
 
         # Predict
         train_predictions = model.predict(train_x)
-        train_accuracy = binary_accuracy(actual=train_predictions, expected=train_y)
+        train_accuracy = binary_accuracy(actual=train_predictions,
+                                         expected=train_y)
         print(f"Train accuracy = {train_accuracy}%")
 
         test_predictions = model.predict(test_x)
-        test_accuracy = binary_accuracy(actual=test_predictions, expected=test_y)
+        test_accuracy = binary_accuracy(actual=test_predictions,
+                                        expected=test_y)
         print(f"Test accuracy = {test_accuracy}%")
