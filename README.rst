@@ -24,8 +24,8 @@ is done by computing partial derivatives by repetitive application of
 the `chain rule <https://en.wikipedia.org/wiki/Chain_rule>`__. Hence the
 name.
 
-Originally created taking while following coursera's `deeplearning.ai
-course <https://www.coursera.org/specializations/deep-learning>`__ but I
+Originally created while taking coursera's `deeplearning.ai
+class <https://www.coursera.org/specializations/deep-learning>`__ but I
 wanted a more "from scratch", "generic" and advanced implementation of
 the course exercices.
 
