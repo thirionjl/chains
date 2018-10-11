@@ -5,7 +5,9 @@ from chains.initialization import variable_initializers as init
 from chains.layers import fully_connected as fc
 from chains.optimizer import gradient_descent as gd
 from chains.tensor.tensor import Dim
-from coursera.course1.w3.planar_utils import plot_decision_boundary, load_planar_dataset
+from chains import env
+from coursera.course1.w3.planar_utils import plot_decision_boundary, \
+    load_planar_dataset
 from coursera.utils import binary_accuracy
 
 ITERATION_UNIT = 100
@@ -42,11 +44,13 @@ class ShallowNNModel:
         self.cost_graph = g.Graph(loss)
         self.prediction_graph = g.Graph(predictions)
 
-    def train(self, x_train, y_train, num_iterations=10_000, learning_rate=1.2, print_cost=False):
-        init.seed(3)
+    def train(self, x_train, y_train, num_iterations=10_000, learning_rate=1.2,
+              print_cost=False):
+        env.seed(3)
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
-        optimizer = gd.GradientDescentOptimizer(self.cost_graph, learning_rate=learning_rate)
+        optimizer = gd.GradientDescentOptimizer(self.cost_graph,
+                                                learning_rate=learning_rate)
         costs = []
         for i in range(num_iterations):
             optimizer.run()
