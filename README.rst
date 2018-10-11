@@ -1,21 +1,40 @@
-======
-Chains
-======
+========
+Overview
+========
 
+.. start-badges
 
-.. image:: https://img.shields.io/pypi/v/ml-chains.svg
-        :target: https://pypi.python.org/pypi/ml-chains
+.. list-table::
+    :stub-columns: 1
 
-.. image:: https://img.shields.io/travis/thirionjl/chains.svg
-        :target: https://travis-ci.org/thirionjl/chains
+    * - docs
+      - |docs|
+    * - tests
+      - | |travis| |codecov|
+    * - package
+      - | |version| |dependencies|
 
-.. image:: https://readthedocs.org/projects/ml-chains/badge/?version=latest
-        :target: https://ml-chains.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+.. |docs| image:: https://readthedocs.org/projects/ml-chains/badge/?version=latest
+     :target: https://ml-chains.readthedocs.io/en/latest/?badge=latest
+     :alt: Documentation Status
 
-.. image:: https://pyup.io/repos/github/thirionjl/chains/shield.svg
+.. |travis| image:: https://img.shields.io/travis/thirionjl/chains.svg
+     :target: https://travis-ci.org/thirionjl/chains
+     :alt: Travis CI build status
+
+.. |version| image:: https://img.shields.io/pypi/v/ml-chains.svg
+    :target: https://pypi.python.org/pypi/ml-chains
+    :alt: PyPI Package latest release
+
+.. |codecov| image:: https://codecov.io/gh/thirionjl/chains/branch/master/graph/badge.svg
+     :target: https://codecov.io/gh/thirionjl/chains
+     :alt: Unit test code coverage
+
+.. |dependencies| image:: https://pyup.io/repos/github/thirionjl/chains/shield.svg
      :target: https://pyup.io/repos/github/thirionjl/chains/
      :alt: Updates
+
+.. end-badges
 
 Mini machine learning library centered around optimizing a cost function
 specified as a `computation
