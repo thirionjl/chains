@@ -3,34 +3,36 @@ Chains
 ======
 
 
-.. image:: https://img.shields.io/pypi/v/chains.svg
-        :target: https://pypi.python.org/pypi/chains
+.. image:: https://img.shields.io/pypi/v/ml-chains.svg
+        :target: https://pypi.python.org/pypi/ml-chains
 
 .. image:: https://img.shields.io/travis/thirionjl/chains.svg
         :target: https://travis-ci.org/thirionjl/chains
 
-.. image:: https://readthedocs.org/projects/chains/badge/?version=latest
-        :target: https://chains.readthedocs.io/en/latest/?badge=latest
+.. image:: https://readthedocs.org/projects/ml-chains/badge/?version=latest
+        :target: https://ml-chains.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
-
 
 .. image:: https://pyup.io/repos/github/thirionjl/chains/shield.svg
      :target: https://pyup.io/repos/github/thirionjl/chains/
      :alt: Updates
 
+Mini machine learning library centered around optimizing a cost function
+specified as a `computation
+graph <http://colah.github.io/posts/2015-08-Backprop/>`__. Optimization
+is done by computing partial derivatives by repetitive application of
+the `chain rule <https://en.wikipedia.org/wiki/Chain_rule>`__. Hence the
+name.
 
+Originally created taking while following coursera's `deeplearning.ai
+course <https://www.coursera.org/specializations/deep-learning>`__ but I
+wanted a more "from scratch", "generic" and advanced implementation of
+the course exercices.
 
-or machine learning centered around the derivation chain rule
-
-
+Links
+-----
 * Free software: MIT license
 * Documentation: https://chains.readthedocs.io.
-
-
-Features
---------
-
-* TODO
 
 Credits
 -------
