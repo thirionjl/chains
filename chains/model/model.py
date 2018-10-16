@@ -1,20 +1,28 @@
 import abc
+import numpy as np
 
 import chains.layers.fully_connected as fc
-from chains import env
 from chains.graph import node_factory as f
 from chains.graph.structure import Node, Graph
 from chains.initialization import variable_initializers as init
 from chains.operations import regularization_ops as reg
 from chains.optimizer import gradient_descent as gd
 from chains.tensor.tensor import Dim
+from .training import create_batches
+
+
+
+
+
 
 
 class Model(abc.ABC):
 
-    def __init__(self):
+    def __init__(self, examples_axis = -1):
         self.cost_graph = None
         self.prediction_graph = None
+        self.examples_axis = examples_axis
+        self.train_listener = ModelTrainListener()
 
     # get graphs + choose optimizer + choose monitors
     # metrics: -> Accuracy ? Cost ?
@@ -22,28 +30,49 @@ class Model(abc.ABC):
     # BatchNorm: BNLayer() => nouvelles variables. PredictGraph: Fournir mu et sigma
     # => Comment récupérer mu et sigma: Produire mu et sigma dans le graphe ?
     # Predict + que mu et sigma...
-    def train(self, x_train, y_train, *, num_iterations, learning_rate, print_cost=False):
-        env.seed(3)
+
+
+
+    def train(self, x_train, y_train, *, num_iterations, learning_rate):
+
+        indexes = np.arange(x_train.shape(self.examples_axis))
+
+
+        for epoch_num in range(epochs):
+            indexes = np.random.shuffle(indexes)
+            batches = create_batches(indexes)
+
+            for batch_num, (start_idx, stop_idx) in enumerate(batches):
+                x = x_train[start_idx:stop_idx]
+                y = y_train[start_idx:stop_idx]
+                optimizer.run(x, y)
+
+
+
+        self.train_listener.on_start()
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
-        optimizer = gd.GradientDescentOptimizer(self.cost_graph,
-                                                learning_rate=learning_rate)
-        costs = []
+        optimizer = gd.GradientDescentOptimizer(self.cost_graph, learning_rate)
+
         for i in range(num_iterations):
-            env.seed(1)
+            self.train_listener.on_epoch_start(i)
             optimizer.run()
-
-            if i % 1000 == 0:
-                costs.append(optimizer.cost)
-
-            if print_cost and i % 10000 == 0:
-                print(f"Cost after iteration {i}: {optimizer.cost}")
-
-        return costs
+            self.train_listener.on_iteration(i, optimizer.cost)
 
     def predict(self, x_test):
         self.prediction_graph.placeholders = {self.X: x_test}
         return self.prediction_graph.evaluate()
+
+
+class ModelTrainListener:
+    def on_start(self):
+        pass
+
+    def on_epoch_start(self, epoch_num):
+        pass
+
+    def on_iteration(self, mini_batch_num, cost):
+        pass
 
 
 class Sequence(Model):
@@ -54,24 +83,28 @@ class Sequence(Model):
         super().__init__()
         self.cnt_features = Dim.of(cnt_features)
         self.cnt_examples = Dim.unknown()
-        self.X = f.placeholder(shape=(self.cnt_features, self.cnt_examples))  # TODO Allow axis swap
+        self.X = f.placeholder(shape=(
+            self.cnt_features, self.cnt_examples))  # TODO Allow axis swap
         self.Y = f.placeholder(shape=(1, self.cnt_examples))
 
         cost_graph, predict_graph, regularizable_vars = self.X, self.X, []
         for pos, layer in enumerate(layers):
-            cost_graph, predict_graph, vars = layer.augment(pos, cost_graph, predict_graph)
+            cost_graph, predict_graph, vars = layer.augment(pos, cost_graph,
+                                                            predict_graph)
             regularizable_vars.extend(vars)
 
-        cost_graph, predict_graph = classifier.augment(cost_graph, predict_graph, self.Y)
+        cost_graph, predict_graph = classifier.augment(cost_graph,
+                                                       predict_graph, self.Y)
 
         if regularizer is not None:
-            cost_graph = regularizer.augment(cost_graph, regularizable_vars, self.X)
+            cost_graph = regularizer.augment(cost_graph, regularizable_vars,
+                                             self.X)
 
         self.cost_graph = Graph(cost_graph)
         self.prediction_graph = Graph(predict_graph)
 
 
-class Layer(abc.ABC):
+class SequenceElement(abc.ABC):
 
     def __init__(self):
         self.cost_graph = None
@@ -83,28 +116,37 @@ class Layer(abc.ABC):
         pass
 
 
-class FullyConnectedLayer(Layer):
+class Dense(SequenceElement):
+    default_weight_initializer = init.HeInitializer()
+    default_bias_initializer = init.ZeroInitializer()
 
-    def __init__(self, neurons: int, weight_initializer=None, bias_initializer=None):
+    def __init__(self, neurons: int, weight_initializer=None,
+                 bias_initializer=None):
         self.neurons = neurons
-        self.weight_initializer = init.HeInitializer() if weight_initializer is None else weight_initializer
-        self.bias_initializer = init.ZeroInitializer() if bias_initializer is None else bias_initializer
+        self.weight_initializer = self.default_weight_initializer \
+            if weight_initializer is None else weight_initializer
+        self.bias_initializer = self.default_bias_initializer \
+            if bias_initializer is None else bias_initializer
 
-    def augment(self, pos: int, cost_graph: Node, predict_graph: Node):
-        cnt_features = cost_graph.shape[0]  # TODO Allow different axis for the "features" and "examples" dimension
-        w = f.var("W" + str(pos + 1), self.weight_initializer, shape=(self.neurons, cnt_features))
-        b = f.var("b" + str(pos + 1), self.bias_initializer, shape=(self.neurons, 1))
-        return fc.fully_connected(cost_graph, w, b, first_layer=(pos == 0)), \
-               fc.fully_connected(predict_graph, w, b, first_layer=(pos == 0)), [w]
+    def augment(self, pos: int, cost_g: Node, predict_g: Node):
+        # TODO Allow different axis for the "features" and "examples" dimension
+        cnt_features = cost_g.shape[0]
+        w = f.var("W" + str(pos + 1), self.weight_initializer,
+                  shape=(self.neurons, cnt_features))
+        b = f.var("b" + str(pos + 1), self.bias_initializer,
+                  shape=(self.neurons, 1))
+        return fc.fully_connected(cost_g, w, b, first_layer=(pos == 0)), \
+            fc.fully_connected(predict_g, w, b, first_layer=(pos == 0)), \
+            [w]
 
 
-class ReLuLayer(Layer):
+class ReLu(SequenceElement):
 
     def augment(self, pos: int, cost_graph: Node, predict_graph: Node):
         return f.relu(cost_graph), f.relu(predict_graph), []
 
 
-class DropoutLayer(Layer):
+class Dropout(SequenceElement):
     def __init__(self, keep_prob=0.8):
         if not (0 < keep_prob <= 1):
             raise ValueError(f"Keep probability should be between 0 and 1")
@@ -142,6 +184,7 @@ class L2Regularizer(Regularizer):
 
     def augment(self, cost_graph: Node, vars, inputs):
         if self.lambd > 0:
-            return cost_graph + reg.l2_norm_regularizer(self.lambd, f.dim(inputs), vars)
+            return cost_graph + reg.l2_norm_regularizer(self.lambd,
+                                                        f.dim(inputs), vars)
         else:
             return cost_graph

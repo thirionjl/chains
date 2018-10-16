@@ -1,20 +1,23 @@
 # import packages
 import time
 
+from chains import env
 from chains.model.model import *
 from coursera.course2.w1.reg_utils import *
 from coursera.utils import binary_accuracy, plot_costs
+
+Dense.default_weight_initializer = init.XavierInitializer()
 
 
 def default_model(cnt_features):
     return Sequence(
         cnt_features=cnt_features,
         layers=[
-            FullyConnectedLayer(20, weight_initializer=init.XavierInitializer()),
-            ReLuLayer(),
-            FullyConnectedLayer(3, weight_initializer=init.XavierInitializer()),
-            ReLuLayer(),
-            FullyConnectedLayer(1, weight_initializer=init.XavierInitializer()),
+            Dense(20),
+            ReLu(),
+            Dense(3),
+            ReLu(),
+            Dense(1),
         ],
         classifier=SigmoidBinaryClassifier(),
     )
@@ -24,11 +27,11 @@ def l2reg_model(cnt_features):
     return Sequence(
         cnt_features=cnt_features,
         layers=[
-            FullyConnectedLayer(20, weight_initializer=init.XavierInitializer()),
-            ReLuLayer(),
-            FullyConnectedLayer(3, weight_initializer=init.XavierInitializer()),
-            ReLuLayer(),
-            FullyConnectedLayer(1, weight_initializer=init.XavierInitializer()),
+            Dense(20),
+            ReLu(),
+            Dense(3),
+            ReLu(),
+            Dense(1),
         ],
         classifier=SigmoidBinaryClassifier(),
         regularizer=L2Regularizer(lambd=0.7)
@@ -39,16 +42,35 @@ def dropout_model(cnt_features):
     return Sequence(
         cnt_features=cnt_features,
         layers=[
-            FullyConnectedLayer(20, weight_initializer=init.XavierInitializer()),
-            ReLuLayer(),
-            DropoutLayer(0.86),
-            FullyConnectedLayer(3, weight_initializer=init.XavierInitializer()),
-            ReLuLayer(),
-            DropoutLayer(0.86),
-            FullyConnectedLayer(1, weight_initializer=init.XavierInitializer()),
+            Dense(20),
+            ReLu(),
+            Dropout(0.86),
+            Dense(3),
+            ReLu(),
+            Dropout(0.86),
+            Dense(1),
         ],
         classifier=SigmoidBinaryClassifier(),
     )
+
+
+class CostListener(ModelTrainListener):
+
+    def __init__(self):
+        self.costs = []
+
+    def on_start(self):
+        env.seed(3)
+
+    def on_epoch_start(self, epoch_num):
+        env.seed(1)
+
+    def on_iteration(self, i, cost):
+        if i % 1000 == 0:
+            self.costs.append(cost)
+
+        if i % 10000 == 0:
+            print(f"Cost after iteration {i}: {cost}")
 
 
 def show_image(i, im_classes, x, y):
@@ -82,12 +104,13 @@ if __name__ == "__main__":
     models = [default_model(n), l2reg_model(n), dropout_model(n)]
 
     for model in models:
+        model.train_listener = CostListener()
         # Train
         start_time = time.time()
-        costs = model.train(train_x, train_y, num_iterations=30_000, learning_rate=0.3, print_cost=True)
+        model.train(train_x, train_y, num_iterations=30_000, learning_rate=0.3)
         end_time = time.time()
 
-        plot_costs(costs, unit=1000, learning_rate=0.3)
+        plot_costs(model.train_listener.costs, unit=1000, learning_rate=0.3)
 
         # Predict
         train_predictions = model.predict(train_x)
