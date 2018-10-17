@@ -2,75 +2,95 @@
 import time
 
 from chains import env
-from chains.model.model import *
+from chains.model.model import Model
+from chains.model.network import *
+from chains.model.training import TrainListener, BatchTraining
+from chains.optimizer.gradient_descent import GradientDescentOptimizer
 from coursera.course2.w1.reg_utils import *
-from coursera.utils import binary_accuracy, plot_costs
+from coursera.utils import *
 
 Dense.default_weight_initializer = init.XavierInitializer()
 
 
-def default_model(cnt_features):
-    return Sequence(
-        cnt_features=cnt_features,
-        layers=[
-            Dense(20),
-            ReLu(),
-            Dense(3),
-            ReLu(),
-            Dense(1),
-        ],
-        classifier=SigmoidBinaryClassifier(),
-    )
-
-
-def l2reg_model(cnt_features):
-    return Sequence(
-        cnt_features=cnt_features,
-        layers=[
-            Dense(20),
-            ReLu(),
-            Dense(3),
-            ReLu(),
-            Dense(1),
-        ],
-        classifier=SigmoidBinaryClassifier(),
-        regularizer=L2Regularizer(lambd=0.7)
-    )
-
-
-def dropout_model(cnt_features):
-    return Sequence(
-        cnt_features=cnt_features,
-        layers=[
-            Dense(20),
-            ReLu(),
-            Dropout(0.86),
-            Dense(3),
-            ReLu(),
-            Dropout(0.86),
-            Dense(1),
-        ],
-        classifier=SigmoidBinaryClassifier(),
-    )
-
-
-class CostListener(ModelTrainListener):
+class CostListener(TrainListener):
 
     def __init__(self):
         self.costs = []
 
     def on_start(self):
+        self.costs = []
         env.seed(3)
 
     def on_epoch_start(self, epoch_num):
         env.seed(1)
 
-    def on_iteration(self, i, cost):
+    def on_iteration(self, i, _, cost):
         if i % 1000 == 0:
             self.costs.append(cost)
 
         if i % 10000 == 0:
             print(f"Cost after iteration {i}: {cost}")
+
+
+listener = CostListener()
+
+batch_gd = BatchTraining(
+    optimizer=GradientDescentOptimizer(0.3),
+    listener=listener)
+
+
+def default_model(cnt_features):
+    return Model(
+        network=Sequence(
+            cnt_features=cnt_features,
+            layers=[
+                Dense(20),
+                ReLu(),
+                Dense(3),
+                ReLu(),
+                Dense(1),
+            ],
+            classifier=SigmoidBinaryClassifier(),
+        ),
+        training=batch_gd
+    )
+
+
+def l2reg_model(cnt_features):
+    return Model(
+        network=Sequence(
+            cnt_features=cnt_features,
+            layers=[
+                Dense(20),
+                ReLu(),
+                Dense(3),
+                ReLu(),
+                Dense(1),
+            ],
+            classifier=SigmoidBinaryClassifier(),
+            regularizer=L2Regularizer(lambd=0.7)
+        ),
+        training=batch_gd
+    )
+
+
+def dropout_model(cnt_features):
+    return Model(
+        network=Sequence(
+            cnt_features=cnt_features,
+            layers=[
+                Dense(20),
+                ReLu(),
+                Dropout(0.86),
+                Dense(3),
+                ReLu(),
+                Dropout(0.86),
+                Dense(1),
+            ],
+            classifier=SigmoidBinaryClassifier(),
+        ),
+        training=batch_gd
+    )
 
 
 def show_image(i, im_classes, x, y):
@@ -104,18 +124,16 @@ if __name__ == "__main__":
     models = [default_model(n), l2reg_model(n), dropout_model(n)]
 
     for model in models:
-        model.train_listener = CostListener()
         # Train
         start_time = time.time()
-        model.train(train_x, train_y, num_iterations=30_000, learning_rate=0.3)
+        model.train(train_x, train_y, epochs=30_000)
         end_time = time.time()
 
-        plot_costs(model.train_listener.costs, unit=1000, learning_rate=0.3)
+        plot_costs(listener.costs, unit=1000, learning_rate=0.3)
 
         # Predict
         train_predictions = model.predict(train_x)
-        train_accuracy = binary_accuracy(actual=train_predictions,
-                                         expected=train_y)
+        train_accuracy = binary_accuracy(actual=train_predictions, expected=train_y)
         print(f"Train accuracy = {train_accuracy}%")
 
         test_predictions = model.predict(test_x)
