@@ -260,7 +260,7 @@ class Graph:
     def placeholders(self, values: Dict[Node, t.Tensor]):
         for p in self._placeholders:
             p.value = values.get(p)
-        self._check_placeholders()
+        # self._check_placeholders()
 
     def initialize_variables(self):
         # Sort initializations so that it is deterministic in

@@ -10,6 +10,9 @@ class TrainListener:
     def on_start(self):
         pass
 
+    def on_end(self):
+        pass
+
     def on_epoch_start(self, epoch_num):
         pass
 
@@ -28,9 +31,9 @@ class Training:
 
 
 class MiniBatchTraining(Training):
-    def __init__(self, listener: TrainListener, batch_size=128,
+    def __init__(self, optimizer: Optimizer, listener: TrainListener, batch_size=64,
                  sample_axis=-1):
-        super().__init__(listener)
+        super().__init__(optimizer, listener)
         self.batch_size = batch_size
         self.sample_axis = sample_axis
 
@@ -42,6 +45,7 @@ class MiniBatchTraining(Training):
 
         cnt_examples = x_train.shape[self.sample_axis]
 
+        j = 0
         shuffled_range = np.arange(cnt_examples)
         for epoch in range(epochs):
             self.listener.on_epoch_start(epoch)
@@ -50,11 +54,14 @@ class MiniBatchTraining(Training):
 
             for i, (start_idx, stop_idx) in enumerate(batches):
                 indices = shuffled_range[start_idx:stop_idx]
-                x = np.take(x_train, indices, axis=self.examples_axis)
-                y = np.take(y_train, indices, axis=self.examples_axis)
+                x = np.take(x_train, indices, axis=self.sample_axis)
+                y = np.take(y_train, indices, axis=self.sample_axis)
                 network.feed(x, y)
                 self.optimizer.run()
-                self.listener.on_iteration(epoch, i, self.optimizer.cost)
+                j += 1
+                self.listener.on_iteration(epoch, i, j, self.optimizer.cost)
+
+        self.listener.on_end()
 
     @staticmethod
     def batches_from_to(m, batch_size):
@@ -74,4 +81,7 @@ class BatchTraining(Training):
         for i in range(epochs):
             self.listener.on_epoch_start(i)
             self.optimizer.run()
-            self.listener.on_iteration(i, 1, self.optimizer.cost)
+            cost = self.optimizer.cost
+            self.listener.on_iteration(i, 1, i, cost)
+
+        self.listener.on_end()

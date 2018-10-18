@@ -25,21 +25,20 @@ class Optimizer(abc.ABC):
     def run(self):
         c = self._graph.forward()
         gradient = self._graph.backward()
-        self.apply_gradient(gradient, self.learning_rate)
+        self.apply_gradient(gradient)
         self.cost = c
         return gradient, c
 
     @abc.abstractmethod
-    def apply_gradient(self, gradient: Dict[g.Node, Tensor],
-                       learning_rate: float):
+    def apply_gradient(self, gradient: Dict[g.Node, Tensor]):
         pass
 
 
 class GradientDescentOptimizer(Optimizer):
 
-    def apply_gradient(self, grads: Dict[g.Node, Tensor], lr: float):
+    def apply_gradient(self, grads: Dict[g.Node, Tensor]):
         for var_node in self._graph.variables:
-            var_node.value += - lr * grads[var_node]
+            var_node.value += - self.learning_rate * grads[var_node]
 
 # TODO Momentum
 # TODO Adam, RMSProp

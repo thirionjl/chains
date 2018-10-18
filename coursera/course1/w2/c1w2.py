@@ -36,7 +36,8 @@ class LogisticRegressionModel:
     def train(self, x_train, y_train, num_iterations=2000, learning_rate=0.5, print_cost=True):
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
-        optimizer = gd.GradientDescentOptimizer(self.cost_graph, learning_rate=learning_rate)
+        optimizer = gd.GradientDescentOptimizer(learning_rate)
+        optimizer.initialize_and_check(self.cost_graph)
         costs = []
         for i in range(num_iterations):
             optimizer.run()

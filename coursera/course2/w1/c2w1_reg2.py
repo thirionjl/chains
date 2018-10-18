@@ -16,27 +16,31 @@ class CostListener(TrainListener):
 
     def __init__(self):
         self.costs = []
+        self.start_time = None
 
     def on_start(self):
         self.costs = []
+        self.start_time = time.time()
         env.seed(3)
 
     def on_epoch_start(self, epoch_num):
         env.seed(1)
 
-    def on_iteration(self, i, _, cost):
+    def on_iteration(self, epoch, num_batch, i, cost):
         if i % 1000 == 0:
             self.costs.append(cost)
 
         if i % 10000 == 0:
             print(f"Cost after iteration {i}: {cost}")
 
+    def on_end(self):
+        print("time = ", time.time() - start_time)
+        plot_costs(self.costs, unit=1000, learning_rate=0.3)
 
-listener = CostListener()
 
 batch_gd = BatchTraining(
     optimizer=GradientDescentOptimizer(0.3),
-    listener=listener)
+    listener=CostListener())
 
 
 def default_model(cnt_features):
@@ -127,9 +131,6 @@ if __name__ == "__main__":
         # Train
         start_time = time.time()
         model.train(train_x, train_y, epochs=30_000)
-        end_time = time.time()
-
-        plot_costs(listener.costs, unit=1000, learning_rate=0.3)
 
         # Predict
         train_predictions = model.predict(train_x)
@@ -143,6 +144,3 @@ if __name__ == "__main__":
 
         # Plot
         plot_boundary("none", model, train_x, train_y)
-
-        # Performance report
-        print("time = ", end_time - start_time)
