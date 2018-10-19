@@ -22,7 +22,8 @@ def test_quadratic():
     cost = Graph(cost_function)
     cost.placeholders = {b: np.array([1, 0, 0]).reshape(3, 1)}
     cost.initialize_variables()
-    optimizer = gd.GradientDescentOptimizer(cost)
+    optimizer = gd.GradientDescentOptimizer(0.1)
+    optimizer.initialize_and_check(cost)
 
     for i in range(500):
         optimizer.run()
