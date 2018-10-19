@@ -21,13 +21,13 @@ class Network(abc.ABC):
         return self.predict_graph.evaluate()
 
     def evaluate_cost(self, x_train, y_train):
-        self.feed(x_train, y_train)
+        self.feed_cost_graph(x_train, y_train)
         return self.cost_graph.evaluate()
 
     def initialize_variables(self):
         self.cost_graph.initialize_variables()
 
-    def feed(self, x_train, y_train):
+    def feed_cost_graph(self, x_train, y_train):
         self.cost_graph.placeholders = {self.inputs: x_train, self.labels: y_train}
 
 

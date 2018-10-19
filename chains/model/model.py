@@ -11,7 +11,7 @@ class Model:
         self.training = training
 
     def train(self, x_train, y_train, *, epochs):
-        self.training.train(self.network, x_train, y_train, epochs)
+        self.training.train(self.network.cost_graph, self.network.feed_cost_graph, x_train, y_train, epochs)
 
     def predict(self, x_test):
         return self.network.evaluate(x_test)
