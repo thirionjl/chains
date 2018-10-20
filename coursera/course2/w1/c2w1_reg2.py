@@ -28,7 +28,7 @@ class CostListener(TrainListener):
         self.start_time = time.time()
         env.seed(3)
 
-    def on_epoch(self, epoch_num):
+    def on_epoch_start(self, epoch_num):
         env.seed(1)
 
     def on_iteration(self, epoch, num_batch, i, cost):
