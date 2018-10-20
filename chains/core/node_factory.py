@@ -1,5 +1,8 @@
 import numpy as np
 
+from chains.core.ops_activation import SoftMax
+from chains.core.ops_losses import SoftMaxCrossEntropy
+from chains.core.ops_mat import ArgMax
 from .graph import Node
 from .initializers import ConstantInitializer, VarInitializer
 from .ops import Var, Placeholder, Constant
@@ -94,8 +97,8 @@ def as_scalar(left: Node):
     return Node(AsScalar(), [left])
 
 
-# def softmax_cross_entropy(logits: Node, labels: Node):
-#     return Node(SoftMaxCrossEntropyWithLogits(), [logits, labels])
+def softmax_cross_entropy(logits: Node, labels: Node):
+    return Node(SoftMaxCrossEntropy(), [logits, labels])
 
 
 def sigmoid_cross_entropy(logits: Node, labels: Node):
@@ -106,8 +109,16 @@ def sigmoid(logits: Node):
     return Node(Sigmoid(), [logits])
 
 
+def softmax(logits: Node):
+    return Node(SoftMax(), [logits])
+
+
 def is_greater_than(logits: Node, threshold: float):
     return Node(IsGreaterThan(threshold), [logits])
+
+
+def argmax(logits: Node, axis=0):
+    return Node(ArgMax(axis), [logits])
 
 
 def tanh(logits: Node):

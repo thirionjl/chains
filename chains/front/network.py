@@ -34,7 +34,7 @@ class Sequence(Network):
 
     # GraphBuilder actually
     def __init__(self, cnt_features: int, layers, classifier,
-                 regularizer=None):
+                 cnt_labels=1, regularizer=None):
         # TODO Input shape + specify m dimension
         super().__init__()
         self.cnt_features = Dim.of(cnt_features)
@@ -42,7 +42,7 @@ class Sequence(Network):
         # TODO Allow axis swap
         self.inputs = f.placeholder(
             shape=(self.cnt_features, self.cnt_samples))
-        self.labels = f.placeholder(shape=(1, self.cnt_samples))
+        self.labels = f.placeholder(shape=(cnt_labels, self.cnt_samples))
 
         cost_graph, predict_graph, regularizable_vars = \
             self.inputs, self.inputs, []
@@ -128,6 +128,13 @@ class SigmoidBinaryClassifier(Classifier):
     def augment(self, cost_graph: Node, predict_graph: Node, labels: Node):
         return f.sigmoid_cross_entropy(cost_graph, labels), \
                f.is_greater_than(f.sigmoid(predict_graph), 0.5)
+
+
+class SoftmaxClassifier(Classifier):  # TODO axis
+
+    def augment(self, cost_graph: Node, predict_graph: Node, labels: Node):
+        return f.softmax_cross_entropy(cost_graph, labels), \
+               f.argmax(f.softmax(predict_graph))
 
 
 class Regularizer(abc.ABC):

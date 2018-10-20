@@ -58,10 +58,12 @@ class MiniBatchTraining(Training):
 
         j = 0
         shuffled_range = np.arange(cnt_examples)
+        batches = self.batches_from_to(cnt_examples, self.batch_size)
+        cnt_batches = len(batches)
         for epoch in range(epochs):
             self.listener.on_epoch_start(epoch)
+            epoch_cost = 0
             np.random.shuffle(shuffled_range)
-            batches = self.batches_from_to(cnt_examples, self.batch_size)
 
             for i, (start_idx, stop_idx) in enumerate(batches):
                 indices = shuffled_range[start_idx:stop_idx]
@@ -71,8 +73,9 @@ class MiniBatchTraining(Training):
                 self.optimizer.run()
                 self.listener.on_iteration(epoch, i, j, self.optimizer.cost)
                 j += 1
+                epoch_cost += self.optimizer.cost / cnt_batches
 
-            self.listener.on_epoch_end(epoch, self.optimizer.cost)
+            self.listener.on_epoch_end(epoch, epoch_cost)
 
         self.listener.on_end()
 
