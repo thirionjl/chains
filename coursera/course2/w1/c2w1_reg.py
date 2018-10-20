@@ -2,14 +2,9 @@
 import cProfile
 import time
 
-from chains import env
-from chains.graph import node_factory as f, structure as g
-from chains.graph import node_factory as nf
-from chains.initialization import variable_initializers as init
-from chains.layers import fully_connected as fc
-from chains.operations import regularization_ops as reg
-from chains.optimizer import gradient_descent as gd
-from chains.tensor.tensor import Dim
+from chains.core import node_factory as f, initializers as init
+from chains.core import optimizers as gd, graph as g, env
+from chains.core.shape import Dim
 from coursera.course2.w1.reg_utils import *
 from coursera.utils import binary_accuracy, plot_costs
 
@@ -33,7 +28,7 @@ class NNModel:
         network = self.layers(self.X, weights, biases, self.L, keep_prob)
         loss = f.sigmoid_cross_entropy(network, self.Y)
         if lambd > 0:
-            loss += reg.l2_norm_regularizer(lambd, nf.dim(self.X), weights)
+            loss += f.l2_norm_regularizer(lambd, f.dim(self.X), weights)
         self.cost_graph = g.Graph(loss)
 
         # Prediction graph
@@ -51,7 +46,7 @@ class NNModel:
             a = f.relu(linear)
 
             if 0 < keep_prob < 1:
-                a = reg.dropout(keep_prob, a)
+                a = f.dropout(keep_prob, a)
 
         return NNModel.layer(a, weight_matrices[-1], bias_matrices[-1],
                              layers_count)
@@ -79,7 +74,7 @@ class NNModel:
 
     @staticmethod
     def layer(features, w, b, layer_num):
-        return fc.fully_connected(features, w, b, first_layer=(layer_num == 1))
+        return f.fully_connected(features, w, b, first_layer=(layer_num == 1))
 
     def train(self, x_train, y_train, *,
               num_iterations=30_000,

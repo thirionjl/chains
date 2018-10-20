@@ -1,15 +1,20 @@
 # import packages
 import time
 
-from chains import env
-from chains.model.model import Model
-from chains.model.network import *
-from chains.model.training import TrainListener, BatchTraining
-from chains.optimizer.gradient_descent import GradientDescentOptimizer
-from coursera.course2.w1.reg_utils import *
-from coursera.utils import *
+import matplotlib.pyplot as plt
 
-Dense.default_weight_initializer = init.XavierInitializer()
+from chains.core import env
+from chains.core.initializers import XavierInitializer
+from chains.core.optimizers import GradientDescentOptimizer
+from chains.front.model import Model
+from chains.front.network import Dense, Sequence, ReLu, \
+    SigmoidBinaryClassifier, L2Regularizer, Dropout
+from chains.front.training import TrainListener, BatchTraining
+from coursera.course2.w1.reg_utils import plot_decision_boundary, \
+    load_2D_dataset
+from coursera.utils import binary_accuracy, plot_costs
+
+Dense.default_weight_initializer = XavierInitializer()
 
 
 class CostListener(TrainListener):
@@ -38,9 +43,7 @@ class CostListener(TrainListener):
         plot_costs(self.costs, unit=1000, learning_rate=0.3)
 
 
-batch_gd = BatchTraining(
-    optimizer=GradientDescentOptimizer(0.3),
-    listener=CostListener())
+batch_gd = BatchTraining(GradientDescentOptimizer(0.3), CostListener())
 
 
 def default_model(cnt_features):
@@ -48,10 +51,8 @@ def default_model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(20),
-                ReLu(),
-                Dense(3),
-                ReLu(),
+                Dense(20), ReLu(),
+                Dense(3), ReLu(),
                 Dense(1),
             ],
             classifier=SigmoidBinaryClassifier(),
@@ -65,10 +66,8 @@ def l2reg_model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(20),
-                ReLu(),
-                Dense(3),
-                ReLu(),
+                Dense(20), ReLu(),
+                Dense(3), ReLu(),
                 Dense(1),
             ],
             classifier=SigmoidBinaryClassifier(),
@@ -83,12 +82,8 @@ def dropout_model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(20),
-                ReLu(),
-                Dropout(0.86),
-                Dense(3),
-                ReLu(),
-                Dropout(0.86),
+                Dense(20), ReLu(), Dropout(0.86),
+                Dense(3), ReLu(), Dropout(0.86),
                 Dense(1),
             ],
             classifier=SigmoidBinaryClassifier(),
@@ -134,7 +129,8 @@ if __name__ == "__main__":
 
         # Predict
         train_predictions = model.predict(train_x)
-        train_accuracy = binary_accuracy(actual=train_predictions, expected=train_y)
+        train_accuracy = binary_accuracy(actual=train_predictions,
+                                         expected=train_y)
         print(f"Train accuracy = {train_accuracy}%")
 
         test_predictions = model.predict(test_x)

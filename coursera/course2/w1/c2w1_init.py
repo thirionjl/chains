@@ -1,11 +1,8 @@
 import matplotlib.pyplot as plt
 
-from chains.graph import node_factory as f, structure as g
-from chains.initialization import variable_initializers as init
-from chains.layers import fully_connected as fc
-from chains.optimizer import gradient_descent as gd
-from chains.tensor.tensor import Dim
-from chains import env
+from chains.core import node_factory as f, initializers as init
+from chains.core import optimizers as gd, graph as g, env
+from chains.core.shape import Dim
 from coursera.course2.w1.init_utils import load_dataset, plot_decision_boundary
 from coursera.utils import binary_accuracy, plot_costs
 
@@ -33,7 +30,7 @@ class NNModel:
         self.X = f.placeholder(shape=(self.n, self.m))
         self.Y = f.placeholder(shape=(1, self.m))
 
-        # Hidden layers
+        # Hidden todo
         a = self.X
         a_size = self.n
         for l, h in enumerate(hidden_layers_sizes):
@@ -56,8 +53,8 @@ class NNModel:
                         shape=(cnt_neurons, cnt_features))
         biases = f.var("b" + str(layer_num + 1), init.ZeroInitializer(),
                        shape=(cnt_neurons, 1))
-        return fc.fully_connected(features, weights, biases,
-                                  first_layer=(layer_num == 0))
+        return f.fully_connected(features, weights, biases,
+                                 first_layer=(layer_num == 0))
 
     def train(self, x_train, y_train, *,
               num_iterations=15_000,

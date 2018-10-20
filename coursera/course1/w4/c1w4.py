@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 
-from chains.graph import node_factory as f, structure as g
-from chains.initialization import variable_initializers as init
-from chains.layers import fully_connected as fc
-from chains.optimizer import gradient_descent as gd
-from chains.tensor.tensor import Dim
-from chains import env
+import chains.core.node_factory
+from chains.core import node_factory as f, env
+from chains.core.graph import Graph
+from chains.core.initializers import XavierInitializer, ZeroInitializer
+from chains.core.optimizers import GradientDescentOptimizer
+from chains.core.shape import Dim
 from coursera.course1.w4.dnn_app_utils_v3 import load_data
 from coursera.utils import binary_accuracy, plot_costs
 
@@ -21,7 +21,7 @@ class DeepNNModel:
         self.X = f.placeholder(shape=(self.n, self.m))
         self.Y = f.placeholder(shape=(1, self.m))
 
-        # Hidden layers
+        # Hidden todo
         a = self.X
         a_size = self.n
         for l, h in enumerate(hidden_layers_sizes):
@@ -35,25 +35,27 @@ class DeepNNModel:
         predictions = f.is_greater_than(f.sigmoid(linear), 0.5)
 
         # Computation graphs
-        self.cost_graph = g.Graph(loss)
-        self.prediction_graph = g.Graph(predictions)
+        self.cost_graph = Graph(loss)
+        self.prediction_graph = Graph(predictions)
 
     @staticmethod
     def fully_connected_layer(features, cnt_features, cnt_neurons,
                               layer_number):
-        weights = f.var("W" + str(layer_number + 1), init.XavierInitializer(),
+        weights = f.var("W" + str(layer_number + 1), XavierInitializer(),
                         shape=(cnt_neurons, cnt_features))
-        biases = f.var("b" + str(layer_number + 1), init.ZeroInitializer(),
+        biases = f.var("b" + str(layer_number + 1), ZeroInitializer(),
                        shape=(cnt_neurons, 1))
-        return fc.fully_connected(features, weights, biases,
-                                  first_layer=(layer_number == 0))
+        return chains.core.node_factory.fully_connected(features, weights,
+                                                        biases,
+                                                        first_layer=(
+                                                            layer_number == 0))
 
     def train(self, x_train, y_train, *, num_iterations=2_500,
               learning_rate=0.0075, print_cost=False):
         env.seed(1)
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
-        optimizer = gd.GradientDescentOptimizer(learning_rate)
+        optimizer = GradientDescentOptimizer(learning_rate)
         optimizer.initialize_and_check(self.cost_graph)
         costs = []
         for i in range(num_iterations):
@@ -114,7 +116,7 @@ if __name__ == "__main__":
     print("train_x's shape: " + str(train_x.shape))
     print("test_x's shape: " + str(test_x.shape))
 
-    # 2-layer data model with 7 hidden units
+    # 2-layer data front with 7 hidden units
     n_x = 12288  # num_px * num_px * 3
     n_h = 7
     n_y = 1
@@ -127,7 +129,8 @@ if __name__ == "__main__":
 
     for hidden_layer_dims in layer_configurations:
         print(
-            f"\n\n>>> Testing with hidden layers of dimensions {hidden_layer_dims}")
+            f"\n\n>>> Testing with hidden todo of dimensions"
+            f" {hidden_layer_dims}")
         model = DeepNNModel(n_x, hidden_layer_dims)
         costs = model.train(train_x, train_y, print_cost=True)
         plot_costs(costs, unit=ITERATION_UNIT, learning_rate=0.0075)
