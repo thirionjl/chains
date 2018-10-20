@@ -4,11 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import coursera.course1.w2.lr_utils as cs
-from chains.graph import node_factory as f, structure as g
-from chains.initialization import variable_initializers as init
-from chains.layers import fully_connected as fc
-from chains.optimizer import gradient_descent as gd
-from chains.tensor.tensor import Dim
+from chains.core import node_factory as f, initializers as init
+from chains.core import node_factory as nf
+from chains.core import optimizers as gd, graph as g
+from chains.core.shape import Dim
 from coursera.utils import binary_accuracy, plot_costs
 
 ITERATIONS_UNIT = 100
@@ -26,17 +25,20 @@ class LogisticRegressionModel:
         self.X = f.placeholder(shape=(self.n, self.m))
         self.Y = f.placeholder(shape=(1, self.m))
 
-        self.logits = fc.fully_connected(self.X, self.W, self.b, first_layer=True)
+        self.logits = nf.fully_connected(self.X, self.W, self.b,
+                                         first_layer=True)
         self.loss = f.sigmoid_cross_entropy(self.logits, self.Y)
         self.predictions = f.is_greater_than(f.sigmoid(self.logits), 0.5)
 
         self.cost_graph = g.Graph(self.loss)
         self.prediction_graph = g.Graph(self.predictions)
 
-    def train(self, x_train, y_train, num_iterations=2000, learning_rate=0.5, print_cost=True):
+    def train(self, x_train, y_train, num_iterations=2000, learning_rate=0.5,
+              print_cost=True):
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
-        optimizer = gd.GradientDescentOptimizer(self.cost_graph, learning_rate=learning_rate)
+        optimizer = gd.GradientDescentOptimizer(learning_rate)
+        optimizer.initialize_and_check(self.cost_graph)
         costs = []
         for i in range(num_iterations):
             optimizer.run()
@@ -82,8 +84,10 @@ if __name__ == "__main__":
 
     print("==== Pre-processing ====")
 
-    train_set_x_flatten = train_set_x_orig.reshape(train_set_x_orig.shape[0], -1).T
-    test_set_x_flatten = test_set_x_orig.reshape(test_set_x_orig.shape[0], -1).T
+    train_set_x_flatten = train_set_x_orig.reshape(train_set_x_orig.shape[0],
+                                                   -1).T
+    test_set_x_flatten = test_set_x_orig.reshape(test_set_x_orig.shape[0],
+                                                 -1).T
 
     print("train_set_x_flatten shape: ", train_set_x_flatten.shape)
     print("train_set_y shape: ", train_set_y.shape)
@@ -100,7 +104,8 @@ if __name__ == "__main__":
     lr = 0.005
 
     start_time = time.time()
-    costs = model.train(train_set_x, train_set_y, learning_rate=lr, num_iterations=2000, print_cost=True)
+    costs = model.train(train_set_x, train_set_y, learning_rate=lr,
+                        num_iterations=2000, print_cost=True)
     print("training time = ", time.time() - start_time)
 
     plot_costs(costs, unit=ITERATIONS_UNIT, learning_rate=lr)
@@ -108,19 +113,23 @@ if __name__ == "__main__":
     # Predict
     train_predictions = model.predict(train_set_x)
     test_predictions = model.predict(test_set_x)
-    print("Train accuracy = ", binary_accuracy(train_predictions, train_set_y), "%")
-    print("Test  accuracy = ", binary_accuracy(test_predictions, test_set_y), "%")
+    print("Train accuracy = ", binary_accuracy(train_predictions, train_set_y),
+          "%")
+    print("Test  accuracy = ", binary_accuracy(test_predictions, test_set_y),
+          "%")
 
     # Analyze
     # Example of a picture that was wrongly classified.
-    errors = (index for index, (p, r) in enumerate(zip(test_predictions[0, :], test_set_y[0, :])) if p != r)
+    errors = (index for index, (p, r) in
+              enumerate(zip(test_predictions[0, :], test_set_y[0, :])) if
+              p != r)
 
     index = next(errors)
 
     label_prediction = test_set_y[0, index]
     class_prediction = classes[int(test_predictions[0, index])].decode('utf-8')
-    print(f"y = {label_prediction}, you predicted that it is a {class_prediction} picture.")
+    print(
+        f"y = {label_prediction}, you predicted that it is a {class_prediction} picture.")
 
     plt.imshow(test_set_x[:, index].reshape((num_px, num_px, 3)))
     plt.show()
-

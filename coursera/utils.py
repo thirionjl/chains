@@ -22,6 +22,7 @@ def plot_costs(costs: Iterable[float], *, unit: int, learning_rate: float):
     :param unit:  The number of iterations between 2 cost values
     :param learning_rate: The learning rate used. Shown in the title
     """
+    plt.clf()
     plt.plot(np.squeeze(costs))
     plt.ylabel("cost")
     plt.xlabel(f"Iterations (per {unit})")
