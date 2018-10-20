@@ -20,7 +20,10 @@ class TrainListener:
     def on_end(self):
         pass
 
-    def on_epoch(self, epoch_num):
+    def on_epoch_start(self, epoch_num):
+        pass
+
+    def on_epoch_end(self, epoch_num, cost):
         pass
 
     def on_iteration(self, epoch_num, mini_batch_num, iteration, cost):
@@ -56,7 +59,7 @@ class MiniBatchTraining(Training):
         j = 0
         shuffled_range = np.arange(cnt_examples)
         for epoch in range(epochs):
-            self.listener.on_epoch(epoch)
+            self.listener.on_epoch_start(epoch)
             np.random.shuffle(shuffled_range)
             batches = self.batches_from_to(cnt_examples, self.batch_size)
 
@@ -68,6 +71,8 @@ class MiniBatchTraining(Training):
                 self.optimizer.run()
                 self.listener.on_iteration(epoch, i, j, self.optimizer.cost)
                 j += 1
+
+            self.listener.on_epoch_end(epoch, self.optimizer.cost)
 
         self.listener.on_end()
 
@@ -87,7 +92,7 @@ class BatchTraining(Training):
         self.optimizer.initialize_and_check(cost_graph)
 
         for i in range(epochs):
-            self.listener.on_epoch(i)
+            self.listener.on_epoch_start(i)
             self.optimizer.run()
             cost = self.optimizer.cost
             self.listener.on_iteration(i, 0, i, cost)

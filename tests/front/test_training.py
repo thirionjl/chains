@@ -22,7 +22,7 @@ class DummyListener(TrainListener):
     def on_end(self):
         self.calls.append("on_end")
 
-    def on_epoch(self, epoch_num):
+    def on_epoch_start(self, epoch_num):
         self.calls.append(f"on_epoch({epoch_num})")
 
     def on_iteration(self, epoch_num, mini_batch_num, iteration, cost):
