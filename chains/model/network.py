@@ -28,29 +28,34 @@ class Network(abc.ABC):
         self.cost_graph.initialize_variables()
 
     def feed_cost_graph(self, x_train, y_train):
-        self.cost_graph.placeholders = {self.inputs: x_train, self.labels: y_train}
+        self.cost_graph.placeholders = {self.inputs: x_train,
+                                        self.labels: y_train}
 
 
 class Sequence(Network):
 
     # GraphBuilder actually
-    def __init__(self, cnt_features: int, layers, classifier, regularizer=None):
+    def __init__(self, cnt_features: int, layers, classifier,
+                 regularizer=None):
         # TODO Input shape + specify m dimension
         super().__init__()
         self.cnt_features = Dim.of(cnt_features)
-        self.cnt_examples = Dim.unknown()
-        self.inputs = f.placeholder(shape=(
-            self.cnt_features, self.cnt_examples))  # TODO Allow axis swap
-        self.labels = f.placeholder(shape=(1, self.cnt_examples))  # TODO Allow other shapes
+        self.cnt_samples = Dim.unknown()
+        # TODO Allow axis swap
+        self.inputs = f.placeholder(
+            shape=(self.cnt_features, self.cnt_samples))
+        self.labels = f.placeholder(shape=(1, self.cnt_samples))
 
-        cost_graph, predict_graph, regularizable_vars = self.inputs, self.inputs, []
+        cost_graph, predict_graph, regularizable_vars = \
+            self.inputs, self.inputs, []
         for pos, layer in enumerate(layers):
             cost_graph, predict_graph, vars = layer.augment(pos, cost_graph,
                                                             predict_graph)
             regularizable_vars.extend(vars)
 
         cost_graph, predict_graph = classifier.augment(cost_graph,
-                                                       predict_graph, self.labels)
+                                                       predict_graph,
+                                                       self.labels)
 
         if regularizer is not None:
             cost_graph = regularizer.augment(cost_graph, regularizable_vars,
@@ -92,8 +97,8 @@ class Dense(SequenceElement):
         b = f.var("b" + str(pos + 1), self.bias_initializer,
                   shape=(self.neurons, 1))
         return fc.fully_connected(cost_g, w, b, first_layer=(pos == 0)), \
-               fc.fully_connected(predict_g, w, b, first_layer=(pos == 0)), \
-               [w]
+            fc.fully_connected(predict_g, w, b, first_layer=(pos == 0)), \
+            [w]
 
 
 class ReLu(SequenceElement):

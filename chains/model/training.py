@@ -1,5 +1,5 @@
 import math
-from typing import *
+from typing import Callable
 
 import numpy as np
 
@@ -20,28 +20,29 @@ class TrainListener:
     def on_epoch(self, epoch_num):
         pass
 
-    def on_iteration(self, epoch_num, mini_batch_num, cost):
+    def on_iteration(self, epoch_num, mini_batch_num, iteration, cost):
         pass
 
 
 class Training:
 
-    def __init__(self, optimizer: Optimizer, listener: TrainListener = TrainListener()):
+    def __init__(self, optimizer: Optimizer,
+                 listener: TrainListener = TrainListener()):
         self.listener = listener
         self.optimizer = optimizer
 
-    def train(self, cost_graph: Graph, feed_method: FeedMethod, x_train, y_train, epochs):
+    def train(self, cost_graph: Graph, feed_method: FeedMethod,
+              x_train: Tensor, y_train: Tensor, epochs: int):
         pass
 
 
 class MiniBatchTraining(Training):
-    def __init__(self, optimizer: Optimizer, listener: TrainListener, batch_size=64,
-                 sample_axis=-1):
+    def __init__(self, optimizer, listener, batch_size=64, sample_axis=-1):
         super().__init__(optimizer, listener)
         self.batch_size = batch_size
         self.sample_axis = sample_axis
 
-    def train(self, cost_graph: Graph, feed_method: FeedMethod, x_train, y_train, epochs):
+    def train(self, cost_graph, feed_method, x_train, y_train, epochs):
         self.listener.on_start()
         cost_graph.initialize_variables()
         feed_method(x_train, y_train)
@@ -62,8 +63,8 @@ class MiniBatchTraining(Training):
                 y = np.take(y_train, indices, axis=self.sample_axis)
                 feed_method(x, y)
                 self.optimizer.run()
-                j += 1
                 self.listener.on_iteration(epoch, i, j, self.optimizer.cost)
+                j += 1
 
         self.listener.on_end()
 
@@ -76,7 +77,7 @@ class MiniBatchTraining(Training):
 
 class BatchTraining(Training):
 
-    def train(self, cost_graph: Graph, feed_method: FeedMethod, x_train, y_train, epochs):
+    def train(self, cost_graph, feed_method, x_train, y_train, epochs):
         self.listener.on_start()
         cost_graph.initialize_variables()
         feed_method(x_train, y_train)
@@ -86,6 +87,6 @@ class BatchTraining(Training):
             self.listener.on_epoch(i)
             self.optimizer.run()
             cost = self.optimizer.cost
-            self.listener.on_iteration(i, 1, i, cost)
+            self.listener.on_iteration(i, 0, i, cost)
 
         self.listener.on_end()
