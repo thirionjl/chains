@@ -1,10 +1,11 @@
 # import packages
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
 
 from chains.core import env
-from chains.core.initializers import XavierInitializer
-from chains.core.optimizers import AdamOptimizer
+from chains.core.initializers import XavierInitializer, VarInitializer
+from chains.core.optimizers import AdamOptimizer, GradientDescentOptimizer
 from chains.core.preprocessing import one_hot
 from chains.front.model import Model
 from chains.front.network import Dense, Sequence, SoftmaxClassifier, ReLu
@@ -12,7 +13,65 @@ from chains.front.training import TrainListener, MiniBatchTraining
 from coursera.course2.w3.tf_utils import load_dataset
 from coursera.utils import plot_costs
 
-Dense.default_weight_initializer = XavierInitializer()
+
+def initialize_parameters():
+    """
+    Initializes parameters to build a neural network with tensorflow. The shapes are:
+                        W1 : [25, 12288]
+                        b1 : [25, 1]
+                        W2 : [12, 25]
+                        b2 : [12, 1]
+                        W3 : [6, 12]
+                        b3 : [6, 1]
+
+    Returns:
+    parameters -- a dictionary of tensors containing W1, b1, W2, b2, W3, b3
+    """
+
+    tf.set_random_seed(1)  # so that your "random" numbers match ours
+
+    ### START CODE HERE ### (approx. 6 lines of code)
+    W1 = tf.get_variable("W1", [25, 12288],
+                         initializer=tf.contrib.layers.xavier_initializer(
+                             seed=1))
+    b1 = tf.get_variable("b1", [25, 1], initializer=tf.zeros_initializer())
+    W2 = tf.get_variable("W2", [12, 25],
+                         initializer=tf.contrib.layers.xavier_initializer(
+                             seed=1))
+    b2 = tf.get_variable("b2", [12, 1], initializer=tf.zeros_initializer())
+    W3 = tf.get_variable("W3", [6, 12],
+                         initializer=tf.contrib.layers.xavier_initializer(
+                             seed=1))
+    b3 = tf.get_variable("b3", [6, 1], initializer=tf.zeros_initializer())
+    ### END CODE HERE ###
+
+    parameters = {"W1": W1,
+                  "b1": b1,
+                  "W2": W2,
+                  "b2": b2,
+                  "W3": W3,
+                  "b3": b3}
+
+    return parameters
+
+
+class TensorflowInit(VarInitializer):
+
+    def initialize(self, param, dtype):
+        self.layer_num += 1
+        return self.ws[self.layer_num]
+
+    def __init__(self):
+        with tf.Session() as sess:
+            tf.set_random_seed(1)
+            parameters = initialize_parameters()
+            init = tf.global_variables_initializer()
+            sess.run(init)
+            w1 = sess.run(parameters["W1"])
+            w2 = sess.run(parameters["W2"])
+            w3 = sess.run(parameters["W3"])
+            self.ws = [w1, w2, w3]
+        self.layer_num = -1
 
 
 class CostListener(TrainListener):
@@ -32,6 +91,9 @@ class CostListener(TrainListener):
 
     def on_end(self):
         plot_costs(self.costs, unit=5, learning_rate=0.0001)
+
+
+Dense.default_weight_initializer = TensorflowInit()
 
 
 def model(cnt_features):
@@ -76,7 +138,7 @@ if __name__ == "__main__":
     train_x_orig, train_y_orig, test_x_orig, test_y_orig, classes = \
         load_dataset()
 
-    show_image(0, train_x_orig, train_y_orig)
+    # show_image(0, train_x_orig, train_y_orig)
 
     # Preprocessing
     train_x_flat = train_x_orig.reshape(train_x_orig.shape[0], -1).T

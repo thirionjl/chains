@@ -57,18 +57,19 @@ class MiniBatchTraining(Training):
         cnt_examples = x_train.shape[self.sample_axis]
 
         j = 0
-        shuffled_range = np.arange(cnt_examples)
-        batches = self.batches_from_to(cnt_examples, self.batch_size)
+        perm = np.arange(cnt_examples)
+        batches = self.batches_from_to(cnt_examples, x_train.ndim)
         cnt_batches = len(batches)
         for epoch in range(epochs):
             self.listener.on_epoch_start(epoch)
             epoch_cost = 0
-            np.random.shuffle(shuffled_range)
+            np.random.shuffle(perm)
+            x_shuffled = x_train[self.to_index_perm(x_train.ndim, perm)]
+            y_shuffled = y_train[self.to_index_perm(y_train.ndim, perm)]
 
-            for i, (start_idx, stop_idx) in enumerate(batches):
-                indices = shuffled_range[start_idx:stop_idx]
-                x = np.take(x_train, indices, axis=self.sample_axis)
-                y = np.take(y_train, indices, axis=self.sample_axis)
+            for i, indexes in enumerate(batches):
+                x = x_shuffled[indexes]
+                y = y_shuffled[indexes]
                 feed_method(x, y)
                 self.optimizer.run()
                 self.listener.on_iteration(epoch, i, j, self.optimizer.cost)
@@ -79,11 +80,30 @@ class MiniBatchTraining(Training):
 
         self.listener.on_end()
 
-    @staticmethod
-    def batches_from_to(m, batch_size):
-        batches = math.ceil(m / batch_size)
-        return [(i * batch_size, min(m, (i + 1) * batch_size))
-                for i in range(batches)]
+    def to_index_perm(self, ndim, perm):
+        obj = []
+        for dim in range(ndim):
+            if dim == self.sample_axis or dim - self.sample_axis == ndim:
+                obj.append(perm)
+            else:
+                obj.append(slice(None))
+        return tuple(obj)
+
+    def batches_from_to(self, m, ndim):
+        bs = self.batch_size
+        batches = math.ceil(m / bs)
+        bounds = [(i * bs, min(m, (i + 1) * bs)) for i in range(batches)]
+        inds = [self.to_index_obj(ndim, start, stop) for start, stop in bounds]
+        return inds
+
+    def to_index_obj(self, ndim, start, stop):
+        obj = []
+        for dim in range(ndim):
+            if dim == self.sample_axis or dim - self.sample_axis == ndim:
+                obj.append(slice(start, stop))
+            else:
+                obj.append(slice(None))
+        return tuple(obj)
 
 
 class BatchTraining(Training):

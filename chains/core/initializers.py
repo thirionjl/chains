@@ -41,7 +41,7 @@ class RandomNormalInitializer(VarInitializer):
         self.scale = scale
 
     def initialize(self, shape, dtype):
-        if dtype != np.float64:
+        if dtype != np.float32:
             raise ValueError(f"Random initialization does produce only "
                              f"np.float64 but got var with dtype={dtype}")
         return np.random.randn(*shape) * self.scale
