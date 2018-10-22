@@ -30,7 +30,7 @@ def initialized_var(name: str, value):
                     dtype=np.array(value).dtype), name=name)
 
 
-def var(name: str, initializer: VarInitializer, shape, dtype=np.float64):
+def var(name: str, initializer: VarInitializer, shape, dtype=np.float32):
     if name is None:
         raise ValueError('A variable must have a name')
     if not isinstance(initializer, VarInitializer):
@@ -41,7 +41,7 @@ def var(name: str, initializer: VarInitializer, shape, dtype=np.float64):
                     dtype=dtype), name=name)
 
 
-def placeholder(shape, dtype=np.float64):
+def placeholder(shape, dtype=np.float32):
     return Node(Placeholder(StaticShape.from_tuple(shape), dtype))
 
 

@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from chains.core import env
 from chains.core.initializers import VarInitializer
-from chains.core.optimizers import MomentumOptimizer, GradientDescentOptimizer
+from chains.core.optimizers import AdamOptimizer
 from chains.core.preprocessing import one_hot
 from chains.front.model import Model
 from chains.front.network import Dense, Sequence, SoftmaxClassifier, ReLu
@@ -72,7 +72,9 @@ class TensorflowInit(VarInitializer):
             w1 = sess.run(parameters["W1"])
             w2 = sess.run(parameters["W2"])
             w3 = sess.run(parameters["W3"])
-            self.ws = [w1, w2, w3]
+            self.ws = [np.array(w1).astype(dtype=np.float32),
+                       np.array(w2).astype(dtype=np.float32),
+                       np.array(w3).astype(dtype=np.float32)]
         self.layer_num = -1
 
 
@@ -123,7 +125,7 @@ def model(cnt_features):
         ),
         training=MiniBatchTraining(
             batch_size=32,
-            optimizer=MomentumOptimizer(0.001),
+            optimizer=AdamOptimizer(0.0001),
             listener=CostListener()
         )
     )
@@ -167,7 +169,7 @@ if __name__ == "__main__":
     # Model
     model = model(n)
 
-    model.train(train_x, train_y, epochs=1_500)
+    model.train(train_x.astype(dtype=np.float32), train_y.astype(dtype=np.float32), epochs=1_500)
     train_predictions = model.predict(train_x)
     correct_prediction = np.equal(train_y_orig, train_predictions)
     train_accuracy = np.mean(correct_prediction) * 100

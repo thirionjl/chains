@@ -1,6 +1,6 @@
 import math
 from typing import Callable
-
+import cProfile
 import numpy as np
 
 from chains.core.graph import Graph
@@ -57,17 +57,23 @@ class MiniBatchTraining(Training):
         cnt_samples = x_train.shape[self.sample_axis]
         batch_slices = self.compute_batch_slices(cnt_samples, x_train.ndim)
 
-        # pr = cProfile.Profile()
-        # pr.enable()
+        pr = cProfile.Profile()
+
 
         for epoch in range(epochs):
+
+            if epoch % 100 == 7:
+                pr.clear()
+                pr.enable()
+
             self.listener.on_epoch_start(epoch)
             epoch_cost = self.run_epoch(batch_slices, feed_method, x_train, y_train, cnt_samples)
             self.listener.on_epoch_end(epoch, epoch_cost)
 
-        # pr.disable()
-        # pr.dump_stats(f"training_loop_jlt_shuffle.prof")
-        # pr.create_stats()
+            if epoch % 100 == 7:
+                pr.dump_stats(f"training_{epoch}.prof")
+                pr.create_stats()
+
         self.listener.on_end()
 
     def run_epoch(self, batch_slices, feed_method, x, y, cnt_samples):
