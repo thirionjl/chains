@@ -1,11 +1,13 @@
 # import packages
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
 from chains.core import env
-from chains.core.initializers import XavierInitializer, VarInitializer
-from chains.core.optimizers import AdamOptimizer, GradientDescentOptimizer
+from chains.core.initializers import VarInitializer
+from chains.core.optimizers import MomentumOptimizer, GradientDescentOptimizer
 from chains.core.preprocessing import one_hot
 from chains.front.model import Model
 from chains.front.network import Dense, Sequence, SoftmaxClassifier, ReLu
@@ -77,17 +79,28 @@ class TensorflowInit(VarInitializer):
 class CostListener(TrainListener):
 
     def __init__(self):
-        env.seed(1)
         self.costs = []
+        self.seed = None
+        self.start_time = None
 
     def on_start(self):
+        self.seed = 3
         self.costs = []
 
-    def on_epoch_end(self, epoch, cost):
-        if epoch % 10 == 0:
-            self.costs.append(cost)
+    def on_epoch_start(self, epoch_num):
+        self.seed += 1
+        env.seed(self.seed)
+        if epoch_num % 100 == 0:
+            if epoch_num > 0:
+                duration = time.time() - self.start_time
+                print(f"100 epoch duration = {duration}")
+            self.start_time = time.time()
 
-        print(f"Cost after epoch {epoch}: {cost}")
+    def on_epoch_end(self, epoch, cost):
+        if epoch % 5 == 0:
+            self.costs.append(cost)
+        if epoch % 100 == 0:
+            print(f"Cost after epoch {epoch}: {cost}")
 
     def on_end(self):
         plot_costs(self.costs, unit=5, learning_rate=0.0001)
@@ -110,7 +123,7 @@ def model(cnt_features):
         ),
         training=MiniBatchTraining(
             batch_size=32,
-            optimizer=AdamOptimizer(0.0001),
+            optimizer=MomentumOptimizer(0.001),
             listener=CostListener()
         )
     )

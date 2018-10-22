@@ -1,4 +1,5 @@
 import abc
+import math
 from typing import Dict
 
 import numpy as np
@@ -18,6 +19,7 @@ class Optimizer(abc.ABC):
         self.lr = learning_rate
         self._graph = None
         self.cost = None
+        self._variables = None
 
     def initialize_and_check(self, graph: Graph):
         if not isinstance(graph, Graph):
@@ -27,25 +29,28 @@ class Optimizer(abc.ABC):
         self._graph = graph
         self._graph.check_initialized()
         self._graph.forward()
+        self._variables = list(self._graph.variables)
         self.cost = None
 
     def run(self):
         c = self._graph.forward()
         gradient = self._graph.backward()
-        self.apply_gradient(gradient)
+        self.apply_gradients(gradient)
         self.cost = c
         return gradient, c
 
-    @abc.abstractmethod
-    def apply_gradient(self, gradient: Dict[Node, Tensor]):
+    def apply_gradients(self, grads: Dict[Node, Tensor]):
+        for var_node in self._variables:
+            var_node.value = self.apply_single_gradient(var_node, grads[var_node])
+
+    def apply_single_gradient(self, var, grad):
         pass
 
 
 class GradientDescentOptimizer(Optimizer):
 
-    def apply_gradient(self, grads: Dict[Node, Tensor]):
-        for var_node in self._graph.variables:
-            var_node.value -= self.lr * grads[var_node]
+    def apply_single_gradient(self, var, grad):
+        return var.value - self.lr * grad
 
 
 class MomentumOptimizer(Optimizer):
@@ -60,10 +65,11 @@ class MomentumOptimizer(Optimizer):
         super().initialize_and_check(graph)
         _initialize_zeros(graph, self.v)
 
-    def apply_gradient(self, grads: Dict[Node, Tensor]):
-        for n in self._graph.variables:
-            self.v[n] = self.beta * self.v[n] + (1 - self.beta) * grads[n]
-            n.value -= self.lr * self.v[n]
+    def apply_single_gradient(self, var, grad):
+        velocity = self.v[var]
+        velocity = self.beta * velocity + (1 - self.beta) * grad
+        self.v[var] = velocity
+        return var.value - self.lr * grad
 
 
 class AdamOptimizer(Optimizer):
@@ -80,25 +86,28 @@ class AdamOptimizer(Optimizer):
         self.beta2_pow = 1
         self.v = {}  # velocities
         self.s = {}  # squared velocities
-        self.t = 0
 
     def initialize_and_check(self, graph: Graph):
         super().initialize_and_check(graph)
         _initialize_zeros(graph, self.v)
         _initialize_zeros(graph, self.s)
 
-    def apply_gradient(self, grads: Dict[Node, Tensor]):
-        self.t += 1
+    def apply_gradients(self, grads: Dict[Node, Tensor]):
         self.beta1_pow *= self.beta1
         self.beta2_pow *= self.beta2
         for n in self._graph.variables:
-            g_squared = grads[n] ** 2
-            self.v[n] = self.beta1 * self.v[n] + (1 - self.beta1) * grads[n]
-            self.s[n] = self.beta2 * self.s[n] + (1 - self.beta2) * g_squared
-            v_cor = self.v[n] / (1 - self.beta1_pow)
-            s_cor = self.s[n] / (1 - self.beta2_pow)
+            g = grads[n]
+            v = self.v[n]
+            s = self.s[n]
+            g2 = g * g
 
-            n.value -= self.lr * v_cor / np.sqrt(s_cor + self.epsilon)
+            v = self.beta1 * v + (1 - self.beta1) * g
+            s = self.beta2 * s + (1 - self.beta2) * g2
+            lr_adj = self.lr * math.sqrt(1 - self.beta2_pow) / (1 - self.beta1_pow)
+            velocity = v / (np.sqrt(s) + self.epsilon)
+            n.value = n.value - lr_adj * velocity
+            self.v[n] = v
+            self.s[n] = s
 
 
 def _check_has_known_shape(n: StaticShape):

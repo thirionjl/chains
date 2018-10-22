@@ -54,53 +54,60 @@ class MiniBatchTraining(Training):
         feed_method(x_train, y_train)
         self.optimizer.initialize_and_check(cost_graph)
 
-        cnt_examples = x_train.shape[self.sample_axis]
+        cnt_samples = x_train.shape[self.sample_axis]
+        batch_slices = self.compute_batch_slices(cnt_samples, x_train.ndim)
 
-        j = 0
-        perm = np.arange(cnt_examples)
-        batches = self.batches_from_to(cnt_examples, x_train.ndim)
-        cnt_batches = len(batches)
+        # pr = cProfile.Profile()
+        # pr.enable()
+
         for epoch in range(epochs):
             self.listener.on_epoch_start(epoch)
-            epoch_cost = 0
-            np.random.shuffle(perm)
-            x_shuffled = x_train[self.to_index_perm(x_train.ndim, perm)]
-            y_shuffled = y_train[self.to_index_perm(y_train.ndim, perm)]
-
-            for i, indexes in enumerate(batches):
-                x = x_shuffled[indexes]
-                y = y_shuffled[indexes]
-                feed_method(x, y)
-                self.optimizer.run()
-                self.listener.on_iteration(epoch, i, j, self.optimizer.cost)
-                j += 1
-                epoch_cost += self.optimizer.cost / cnt_batches
-
+            epoch_cost = self.run_epoch(batch_slices, feed_method, x_train, y_train, cnt_samples)
             self.listener.on_epoch_end(epoch, epoch_cost)
 
+        # pr.disable()
+        # pr.dump_stats(f"training_loop_jlt_shuffle.prof")
+        # pr.create_stats()
         self.listener.on_end()
 
-    def to_index_perm(self, ndim, perm):
-        obj = []
-        for dim in range(ndim):
-            if dim == self.sample_axis or dim - self.sample_axis == ndim:
-                obj.append(perm)
-            else:
-                obj.append(slice(None))
-        return tuple(obj)
+    def run_epoch(self, batch_slices, feed_method, x, y, cnt_samples):
+        epoch_cost = 0
+        cnt_batches = len(batch_slices)
+        x_shuffled, y_shuffled = self.shuffle(x, y, cnt_samples)
 
-    def batches_from_to(self, m, ndim):
+        for batch_slice in batch_slices:
+            feed_method(x_shuffled[batch_slice], y_shuffled[batch_slice])
+            self.optimizer.run()
+            epoch_cost += self.optimizer.cost / cnt_batches
+        return epoch_cost
+
+    def shuffle(self, x, y, cnt_examples):
+        perm = np.random.permutation(cnt_examples)
+        x_shuffled = x[self.slice_from_permutation(x.ndim, perm)]
+        y_shuffled = y[self.slice_from_permutation(y.ndim, perm)]
+        return x_shuffled, y_shuffled
+
+    def compute_batch_slices(self, m, ndim):
         bs = self.batch_size
         batches = math.ceil(m / bs)
         bounds = [(i * bs, min(m, (i + 1) * bs)) for i in range(batches)]
-        inds = [self.to_index_obj(ndim, start, stop) for start, stop in bounds]
+        inds = [self.slice_from_boundaries(ndim, start, stop) for start, stop in bounds]
         return inds
 
-    def to_index_obj(self, ndim, start, stop):
+    def slice_from_boundaries(self, ndim, start, stop):
         obj = []
         for dim in range(ndim):
             if dim == self.sample_axis or dim - self.sample_axis == ndim:
                 obj.append(slice(start, stop))
+            else:
+                obj.append(slice(None))
+        return tuple(obj)
+
+    def slice_from_permutation(self, ndim, perm):
+        obj = []
+        for dim in range(ndim):
+            if dim == self.sample_axis or dim - self.sample_axis == ndim:
+                obj.append(perm)
             else:
                 obj.append(slice(None))
         return tuple(obj)

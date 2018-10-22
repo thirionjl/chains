@@ -41,7 +41,7 @@ class DummyOptimizer(Optimizer):
     def run(self):
         self.cost -= 1
 
-    def apply_gradient(self, gradient: Dict[Node, Tensor]):
+    def apply_gradients(self, gradient: Dict[Node, Tensor]):
         pass
 
 

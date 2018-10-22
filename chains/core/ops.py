@@ -50,7 +50,7 @@ class BinaryOp(Op, abc.ABC):
 
 class _NoOp(Op):
 
-    def __init__(self, shape: StaticShape, dtype=np.float32):
+    def __init__(self, shape: StaticShape, dtype=np.float64):
         super().__init__()
         if not isinstance(shape, StaticShape):
             raise ValueError("Did not get a shape object")
@@ -72,7 +72,7 @@ class _NoOp(Op):
 
 class Var(_NoOp):
 
-    def __init__(self, initializer, shape, dtype=np.float32):
+    def __init__(self, initializer, shape, dtype=np.float64):
         if not isinstance(initializer, VarInitializer):
             raise ValueError("Var should be passed a VarInitializer subclass")
         if not isinstance(shape, StaticShape):
