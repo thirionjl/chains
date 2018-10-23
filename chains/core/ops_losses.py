@@ -63,8 +63,9 @@ class SoftMaxCrossEntropyWithLogits(BinaryOp):
         super().compute(x, y)
         self.activations = SoftMax.softmax(x, self.class_axis)
 
-        self.output = -np.sum(y * np.log(self.activations),
-                              axis=self.class_axis, keepdims=self.keepdims)
+        self.output = -np.sum(
+            y * np.log(np.clip(self.activations, a_min=1e-10, a_max=None)),
+            axis=self.class_axis, keepdims=self.keepdims)
 
     def partials(self, d_output):
         return (self.activations - self.y) * d_output, 0  # Do not use dLabels

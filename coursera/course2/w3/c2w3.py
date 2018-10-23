@@ -145,6 +145,11 @@ def show_image(i, x, y):
 
 
 if __name__ == "__main__":
+
+    import daz
+
+    daz.set_ftz()
+
     plt.rcParams['figure.figsize'] = (7.0, 4.0)
     plt.rcParams['image.interpolation'] = 'nearest'
     plt.rcParams['image.cmap'] = 'gray'
