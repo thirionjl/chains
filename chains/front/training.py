@@ -50,7 +50,7 @@ class Training:
 
 
 class MiniBatchTraining(Training):
-    batch_sizes = (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+    batch_sizes = (tuple(2 ** i for i in range(1, 11)))
 
     def __init__(self, optimizer, listener, batch_size=64, sample_axis=-1):
         super().__init__(optimizer, listener)
