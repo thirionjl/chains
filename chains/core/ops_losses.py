@@ -53,19 +53,19 @@ class SigmoidCrossEntropy(SigmoidCrossEntropyWithLogits):
 
 class SoftMaxCrossEntropyWithLogits(BinaryOp):
 
-    def __init__(self, class_axis=0, keepdims=False):
+    def __init__(self, class_axis=0, keepdims=False, epsilon=1e-10):
         super().__init__()
         self.activations = None
         self.class_axis = class_axis
         self.keepdims = keepdims
+        self.epsilon = epsilon
 
     def compute(self, x: Tensor, y: Tensor):
         super().compute(x, y)
         self.activations = SoftMax.softmax(x, self.class_axis)
 
-        self.output = -np.sum(
-            y * np.log(np.clip(self.activations, a_min=1e-10, a_max=None)),
-            axis=self.class_axis, keepdims=self.keepdims)
+        self.output = -np.sum(y * np.log(self.activations + self.epsilon),
+                              axis=self.class_axis, keepdims=self.keepdims)
 
     def partials(self, d_output):
         return (self.activations - self.y) * d_output, 0  # Do not use dLabels
