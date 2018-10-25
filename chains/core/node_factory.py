@@ -1,6 +1,6 @@
 import numpy as np
 
-from chains.core.ops_activation import SoftMax
+from chains.core.ops_activation import SoftMax, LeakyReLu
 from chains.core.ops_losses import SoftMaxCrossEntropy
 from chains.core.ops_mat import ArgMax
 from chains.utils import validate
@@ -130,6 +130,8 @@ def tanh(logits: Node):
 def relu(logits: Node):
     return Node(ReLu(), [logits])
 
+def leaky_relu(logits: Node):
+    return Node(LeakyReLu(), [logits])
 
 def dim(logits: Node, axis: int = -1):
     return Node(DimOp(axis), [logits])

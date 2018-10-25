@@ -102,7 +102,7 @@ class Dense(SequenceElement):
 class ReLu(SequenceElement):
 
     def augment(self, pos: int, cost_graph: Node, predict_graph: Node):
-        return f.relu(cost_graph), f.relu(predict_graph), []
+        return f.leaky_relu(cost_graph), f.leaky_relu(predict_graph), []
 
 
 class Dropout(SequenceElement):

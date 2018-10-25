@@ -50,7 +50,7 @@ class CostListener(TrainListener):
     def on_epoch_end(self, epoch, cost):
         if epoch % 5 == 0:
             self.costs.append(cost)
-        if epoch % 100 == 0:
+        if epoch % 1 == 0:
             print(f"Cost after epoch {epoch}: {cost}")
 
     def on_end(self):
@@ -96,7 +96,9 @@ def show_image(i, x, y):
 if __name__ == "__main__":
     import daz
 
-    daz.set_ftz()
+    daz.unset_daz()
+    daz.unset_ftz()
+    np.seterr(under='raise')
 
     plt.rcParams['figure.figsize'] = (7.0, 4.0)
     plt.rcParams['image.interpolation'] = 'nearest'

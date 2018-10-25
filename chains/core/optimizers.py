@@ -21,6 +21,7 @@ class Optimizer(abc.ABC):
         self._graph = None
         self.cost = None
         self._variables = None
+        self.multiplier = 1
 
     def initialize_and_check(self, graph: Graph):
         validate.is_a("graph", graph, Graph)
@@ -105,7 +106,7 @@ class AdamOptimizer(Optimizer):
             s = self.s[n]
             g2 = g * g
 
-            v = self.vmean(g, v)
+            v = self.vmean(g, v, n)
             s = self.smean(g2, s)
             lr_adj = self.adjust_lr()
             velocity = self.divide_velocity(s, v)
@@ -113,11 +114,19 @@ class AdamOptimizer(Optimizer):
             self.v[n] = v
             self.s[n] = s
 
+            if v.dtype != np.float32 or s.dtype != np.float32 or n.value.dtype != np.float32:
+                print("Changed dtype automatically ?")
+                variables = {'g': g, 'g2': g2, 'v': v, 's': s,
+                             'velocity': velocity, 'n_value': n.value}
+                for key, value in variables.items():
+                    print(f"{key}.dtype = {value.dtype}")
+                raise RuntimeError("Auto switch to float64")
+
     def apply_velocity(self, lr_adj, n, velocity):
         return n.value - lr_adj * velocity
 
     def divide_velocity(self, s, v):
-        return v / (np.sqrt(s, dtype=np.float32) + self.epsilon)
+        return v / (np.sqrt(s) + self.epsilon)
 
     def adjust_lr(self):
         return self.lr * math.sqrt(1 - self.beta2_pow) / (1 - self.beta1_pow)
@@ -125,9 +134,15 @@ class AdamOptimizer(Optimizer):
     def smean(self, g2, s):
         return self.beta2 * s + (1 - self.beta2) * g2
 
-    def vmean(self, g, v):
-        return np.multiply(self.beta1, v, dtype=np.float32) + (
-            1 - self.beta1) * g
+    def vmean(self, g, v, n):
+
+        beta_g = (1 - self.beta1) * g
+
+        try:
+            return self.beta1 * v + beta_g
+        except FloatingPointError:
+            print(f"Break for {n.name}")
+            raise
 
 
 def _check_has_known_shape(n: StaticShape):
@@ -146,4 +161,4 @@ def _check_is_percentage(f: float, parameter_name: str):
 def _initialize_zeros(g: Graph, velocity_map: Dict[Node, Tensor]):
     for var_node in g.variables:
         _check_has_known_shape(var_node)
-        velocity_map[var_node] = np.zeros(var_node.shape.to_numpy())
+        velocity_map[var_node] = 0
