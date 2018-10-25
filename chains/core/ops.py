@@ -2,6 +2,7 @@ import abc
 
 import numpy as np
 
+from chains.utils import validate
 from .initializers import VarInitializer
 from .shape import StaticShape
 from .tensor import Tensor
@@ -50,11 +51,12 @@ class BinaryOp(Op, abc.ABC):
 
 class _NoOp(Op):
 
-    def __init__(self, shape: StaticShape, dtype=np.float32):
+    def __init__(self, shape: tuple, dtype=np.float32):
         super().__init__()
-        if not isinstance(shape, StaticShape):
-            raise ValueError("Did not get a shape object")
-        self.shape = shape
+        validate.is_a("shape", shape, tuple)
+        validate.is_float_dtype(dtype)
+
+        self.shape = StaticShape.from_tuple(shape)
         self.dtype = dtype
 
     def compute_out_shape(self) -> StaticShape:
@@ -72,17 +74,16 @@ class _NoOp(Op):
 
 class Var(_NoOp):
 
-    def __init__(self, initializer, shape, dtype=np.float32):
-        if not isinstance(initializer, VarInitializer):
-            raise ValueError("Var should be passed a VarInitializer subclass")
-        if not isinstance(shape, StaticShape):
-            raise ValueError("Did not get a shape object")
-        if shape.is_unknown():
+    def __init__(self, initializer: VarInitializer, shape: tuple,
+                 dtype=np.float32):
+        super().__init__(shape, dtype)
+        validate.is_a("var_initializer", initializer, VarInitializer)
+
+        if StaticShape.from_tuple(shape).is_unknown():
             raise ValueError(
                 "Var should have only known dimensions in declared shape")
 
         self.initializer = initializer
-        super().__init__(shape, dtype)
 
     def initialize(self):
         self.output = self.initializer.initialize(self.shape.to_numpy(),
@@ -95,9 +96,9 @@ class Placeholder(_NoOp):
 
 
 class Constant(_NoOp):
-    def __init__(self, value: Tensor):
-        super().__init__(StaticShape.of_tensor(value), np.array(value).dtype)
-        self.output = value
+    def __init__(self, value: Tensor, dtype=np.float32):
+        super().__init__(StaticShape.of_tensor(value), dtype)
+        self.output = np.array(value).astype(dtype)
         self.check()
 
 

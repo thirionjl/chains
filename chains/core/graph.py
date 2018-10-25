@@ -265,3 +265,7 @@ class Graph:
         # case of random initializers
         for v in sorted(self.variables, key=lambda n: n.name):
             v.initialize()
+
+    @property
+    def shape(self):
+        return self._root.shape

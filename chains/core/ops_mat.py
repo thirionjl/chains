@@ -13,7 +13,7 @@ __all__ = ["DimOp", "AsScalar", "Transpose", "MatMul", "Reduction",
 class DimOp(UnaryOp):
 
     def __init__(self, axis: int = -1):
-        if type(axis) != int:
+        if not isinstance(axis, int):
             raise ValueError(f"axis should be an integer got {type(axis)}")
         self.axis = axis
 

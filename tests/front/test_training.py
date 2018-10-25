@@ -53,6 +53,29 @@ class DummyFeedMethod:
         self.arg_pairs.append((x, y))
 
 
+def test_slice():
+    s1 = MiniBatchTraining._slice(axis=0, ndim=4, start=1, stop=3)
+    s2 = MiniBatchTraining._slice(axis=-1, ndim=4, start=1, stop=3)
+    assert s1 == (slice(1, 3), slice(None), slice(None), slice(None))
+    assert s2 == (slice(None), slice(None), slice(None), slice(1, 3))
+
+
+def test_batch_slices():
+    slices = MiniBatchTraining._batch_slices(m=5, ndim=3, batch_size=2,
+                                             axis=-1)
+
+    assert len(slices) == 3
+    assert slices[0] == (slice(None), slice(None), slice(0, 2))
+    assert slices[1] == (slice(None), slice(None), slice(2, 4))
+    assert slices[2] == (slice(None), slice(None), slice(4, 5))
+
+    slices = MiniBatchTraining._batch_slices(m=6, ndim=2, batch_size=3, axis=0)
+
+    assert len(slices) == 2
+    assert slices[0] == (slice(0, 3), slice(None))
+    assert slices[1] == (slice(3, 6), slice(None))
+
+
 def test_mini_batch_training():
     env.seed(1)
     g = Graph(constant(8))

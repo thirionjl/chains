@@ -13,7 +13,7 @@ class L2NormRegularization(Op):
         super().__init__()
         if lambd is None:
             raise ValueError("L2NormRegularization parameter is mandatory")
-        if type(lambd) != float:
+        if not isinstance(lambd, float):
             raise ValueError(
                 f"L2NormRegularization parameter should be a float, "
                 f"got {type(lambd)}")

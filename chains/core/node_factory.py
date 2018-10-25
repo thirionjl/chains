@@ -3,6 +3,7 @@ import numpy as np
 from chains.core.ops_activation import SoftMax
 from chains.core.ops_losses import SoftMaxCrossEntropy
 from chains.core.ops_mat import ArgMax
+from chains.utils import validate
 from .graph import Node
 from .initializers import ConstantInitializer, VarInitializer
 from .ops import Var, Placeholder, Constant
@@ -23,18 +24,17 @@ __all__ = ["initialized_var", "var", "placeholder", "constant", "add", "sub",
 
 
 def initialized_var(name: str, value):
-    if name is None:
-        raise ValueError('A variable must have a name')
+    validate.is_not_blank("var_name", name)
     return Node(Var(initializer=ConstantInitializer(value),
                     shape=StaticShape.from_tuple(np.shape(value)),
                     dtype=np.array(value).dtype), name=name)
 
 
 def var(name: str, initializer: VarInitializer, shape, dtype=np.float32):
-    if name is None:
-        raise ValueError('A variable must have a name')
-    if not isinstance(initializer, VarInitializer):
-        raise ValueError('Var should be passed a VarInitializer subclass')
+    validate.is_not_blank("var_name", name)
+    validate.is_a("var_initializer", initializer, VarInitializer)
+    validate.is_a("var_shape", shape, tuple)
+    validate.is_float_dtype(dtype, name="var_dtype")
 
     return Node(Var(initializer=initializer,
                     shape=StaticShape.from_tuple(shape),
@@ -42,11 +42,13 @@ def var(name: str, initializer: VarInitializer, shape, dtype=np.float32):
 
 
 def placeholder(shape, dtype=np.float32):
+    validate.is_float_dtype(dtype, name="placeholder_dtype")
     return Node(Placeholder(StaticShape.from_tuple(shape), dtype))
 
 
-def constant(value):
-    return Node(Constant(value))
+def constant(value, dtype=np.float32):
+    validate.is_float_dtype(dtype, name="constant_dtype")
+    return Node(Constant(value, dtype))
 
 
 def add(left: Node, right: Node):
@@ -134,9 +136,9 @@ def dim(logits: Node, axis: int = -1):
 
 
 def l2_norm_regularizer(lambd, batch_size, weight_matrices_array):
-    if type(batch_size) == int:
+    if isinstance(batch_size, int):
         batch_size_node = Node(Constant(batch_size))
-    elif type(batch_size) == Node:
+    elif isinstance(batch_size, Node):
         batch_size_node = batch_size
     return Node(L2NormRegularization(lambd=lambd),
                 incoming_nodes=[batch_size_node] + weight_matrices_array)

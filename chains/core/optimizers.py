@@ -4,6 +4,7 @@ from typing import Dict
 
 import numpy as np
 
+from chains.utils import validate
 from .graph import Graph, Node
 from .shape import StaticShape
 from .tensor import Tensor
@@ -22,10 +23,10 @@ class Optimizer(abc.ABC):
         self._variables = None
 
     def initialize_and_check(self, graph: Graph):
-        if not isinstance(graph, Graph):
-            raise ValueError(
-                f"Optimizer should be initialized with a {Graph}"
-                f", but got a {type(graph)}")
+        validate.is_a("graph", graph, Graph)
+        if not graph.shape.is_scalar():
+            raise ValueError(f"Optimizers accept only graphs that output a "
+                             f"scalar, but got {self.shape}")
         self._graph = graph
         self._graph.check_initialized()
         self._graph.forward()
@@ -74,12 +75,12 @@ class MomentumOptimizer(Optimizer):
 
 
 class AdamOptimizer(Optimizer):
-    def __init__(self, lr, beta1=0.9, beta2=0.999, epsilon=1e-6):
+    def __init__(self, lr, beta1=0.9, beta2=0.999, epsilon=1e-8):
         super().__init__(lr)
         _check_is_percentage(beta1, "Beta1")
         _check_is_percentage(beta2, "Beta2")
-        # if not 0 < epsilon < 1e-6:
-        #     raise ValueError(f"Epsilon should be less that 1e-6 got {epsilon}")
+        if not 0 < epsilon < 1e-6:
+            raise ValueError(f"Epsilon should be less that 1e-6 got {epsilon}")
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
@@ -102,7 +103,7 @@ class AdamOptimizer(Optimizer):
             g = grads[n]
             v = self.v[n]
             s = self.s[n]
-            g2 = self.squaring(g)
+            g2 = g * g
 
             v = self.vmean(g, v)
             s = self.smean(g2, s)
@@ -111,15 +112,6 @@ class AdamOptimizer(Optimizer):
             n.value = self.apply_velocity(lr_adj, n, velocity)
             self.v[n] = v
             self.s[n] = s
-
-            # if self.t % 3000 == 7:
-            #     a = np.abs(v)
-            #     print(f"{self.t} - s[{n.name}].dtype = {v.dtype}")
-            #     print(f"{self.t} - s[{n.name}] = {np.min(v)}, {np.max(v)}")
-            #     print(f"{self.t} - n[{n.name}] = {np.min(a)}, {np.max(a)}")
-            #     print(f"velocity dtype = {velocity.dtype}")
-            #     print(f"n.value dtype = {n.value.dtype}")
-            #     print(f"v dtype = {v.dtype}")
 
     def apply_velocity(self, lr_adj, n, velocity):
         return n.value - lr_adj * velocity
@@ -134,10 +126,8 @@ class AdamOptimizer(Optimizer):
         return self.beta2 * s + (1 - self.beta2) * g2
 
     def vmean(self, g, v):
-        return np.multiply(self.beta1,v, dtype=np.float32) + (1 - self.beta1) * g
-
-    def squaring(self, g):
-        return g * g
+        return np.multiply(self.beta1, v, dtype=np.float32) + (
+            1 - self.beta1) * g
 
 
 def _check_has_known_shape(n: StaticShape):
