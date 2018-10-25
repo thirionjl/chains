@@ -3,7 +3,6 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
 
 from chains.core import env
 from chains.core.initializers import VarInitializer
@@ -13,69 +12,19 @@ from chains.front.model import Model
 from chains.front.network import Dense, Sequence, SoftmaxClassifier, ReLu
 from chains.front.training import TrainListener, MiniBatchTraining
 from coursera.course2.w3.tf_utils import load_dataset
+from coursera.course2.w3.tf_utils import load_initial_parameter_values
 from coursera.utils import plot_costs
 
 
-def initialize_parameters():
-    """
-    Initializes parameters to build a neural network with tensorflow. The shapes are:
-                        W1 : [25, 12288]
-                        b1 : [25, 1]
-                        W2 : [12, 25]
-                        b2 : [12, 1]
-                        W3 : [6, 12]
-                        b3 : [6, 1]
-
-    Returns:
-    parameters -- a dictionary of tensors containing W1, b1, W2, b2, W3, b3
-    """
-
-    tf.set_random_seed(1)  # so that your "random" numbers match ours
-
-    ### START CODE HERE ### (approx. 6 lines of code)
-    W1 = tf.get_variable("W1", [25, 12288],
-                         initializer=tf.contrib.layers.xavier_initializer(
-                             seed=1))
-    b1 = tf.get_variable("b1", [25, 1], initializer=tf.zeros_initializer())
-    W2 = tf.get_variable("W2", [12, 25],
-                         initializer=tf.contrib.layers.xavier_initializer(
-                             seed=1))
-    b2 = tf.get_variable("b2", [12, 1], initializer=tf.zeros_initializer())
-    W3 = tf.get_variable("W3", [6, 12],
-                         initializer=tf.contrib.layers.xavier_initializer(
-                             seed=1))
-    b3 = tf.get_variable("b3", [6, 1], initializer=tf.zeros_initializer())
-    ### END CODE HERE ###
-
-    parameters = {"W1": W1,
-                  "b1": b1,
-                  "W2": W2,
-                  "b2": b2,
-                  "W3": W3,
-                  "b3": b3}
-
-    return parameters
-
-
-class TensorflowInit(VarInitializer):
+class H5Init(VarInitializer):
 
     def initialize(self, param, dtype):
         self.layer_num += 1
-        return self.ws[self.layer_num]
+        return self.ws[self.layer_num].astype(dtype)
 
     def __init__(self):
-        with tf.Session() as sess:
-            tf.set_random_seed(1)
-            parameters = initialize_parameters()
-            init = tf.global_variables_initializer()
-            sess.run(init)
-            w1 = sess.run(parameters["W1"])
-            w2 = sess.run(parameters["W2"])
-            w3 = sess.run(parameters["W3"])
-            self.ws = [np.array(w1).astype(dtype=np.float32),
-                       np.array(w2).astype(dtype=np.float32),
-                       np.array(w3).astype(dtype=np.float32)]
         self.layer_num = -1
+        self.ws = load_initial_parameter_values()
 
 
 class CostListener(TrainListener):
@@ -108,7 +57,7 @@ class CostListener(TrainListener):
         plot_costs(self.costs, unit=5, learning_rate=0.0001)
 
 
-Dense.default_weight_initializer = TensorflowInit()
+Dense.default_weight_initializer = H5Init()
 
 
 def model(cnt_features):
@@ -145,7 +94,6 @@ def show_image(i, x, y):
 
 
 if __name__ == "__main__":
-
     import daz
 
     daz.set_ftz()
@@ -174,7 +122,8 @@ if __name__ == "__main__":
     # Model
     model = model(n)
 
-    model.train(train_x.astype(dtype=np.float32), train_y.astype(dtype=np.float32), epochs=1_500)
+    model.train(train_x.astype(dtype=np.float32),
+                train_y.astype(dtype=np.float32), epochs=1_500)
     train_predictions = model.predict(train_x)
     correct_prediction = np.equal(train_y_orig, train_predictions)
     train_accuracy = np.mean(correct_prediction) * 100
