@@ -101,48 +101,19 @@ class AdamOptimizer(Optimizer):
         self.beta1_pow *= self.beta1
         self.beta2_pow *= self.beta2
         for n in self._graph.variables:
-            g = grads[n]
+            g = grads[n] + 1e-10
             v = self.v[n]
             s = self.s[n]
             g2 = g * g
 
-            v = self.vmean(g, v, n)
-            s = self.smean(g2, s)
-            lr_adj = self.adjust_lr()
-            velocity = self.divide_velocity(s, v)
-            n.value = self.apply_velocity(lr_adj, n, velocity)
+            v = self.beta1 * v + (1 - self.beta1) * g
+            s = self.beta2 * s + (1 - self.beta2) * g2
+            lr_adj = self.lr * math.sqrt(1 - self.beta2_pow) / (
+                1 - self.beta1_pow)
+            velocity = v / (np.sqrt(s) + self.epsilon)
+            n.value = n.value - lr_adj * velocity
             self.v[n] = v
             self.s[n] = s
-
-            if v.dtype != np.float32 or s.dtype != np.float32 or n.value.dtype != np.float32:
-                print("Changed dtype automatically ?")
-                variables = {'g': g, 'g2': g2, 'v': v, 's': s,
-                             'velocity': velocity, 'n_value': n.value}
-                for key, value in variables.items():
-                    print(f"{key}.dtype = {value.dtype}")
-                raise RuntimeError("Auto switch to float64")
-
-    def apply_velocity(self, lr_adj, n, velocity):
-        return n.value - lr_adj * velocity
-
-    def divide_velocity(self, s, v):
-        return v / (np.sqrt(s) + self.epsilon)
-
-    def adjust_lr(self):
-        return self.lr * math.sqrt(1 - self.beta2_pow) / (1 - self.beta1_pow)
-
-    def smean(self, g2, s):
-        return self.beta2 * s + (1 - self.beta2) * g2
-
-    def vmean(self, g, v, n):
-
-        beta_g = (1 - self.beta1) * g
-
-        try:
-            return self.beta1 * v + beta_g
-        except FloatingPointError:
-            print(f"Break for {n.name}")
-            raise
 
 
 def _check_has_known_shape(n: StaticShape):

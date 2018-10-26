@@ -20,7 +20,7 @@ class ReLu(ElementWiseUnaryOp):
 
 class LeakyReLu(ElementWiseUnaryOp):
 
-    def __init__(self, leak: float = 0.001):
+    def __init__(self, leak: float = 0.01):
         super().__init__()
         self.leak = leak
 

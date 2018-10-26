@@ -50,7 +50,7 @@ class CostListener(TrainListener):
     def on_epoch_end(self, epoch, cost):
         if epoch % 5 == 0:
             self.costs.append(cost)
-        if epoch % 1 == 0:
+        if epoch % 100 == 0:
             print(f"Cost after epoch {epoch}: {cost}")
 
     def on_end(self):
@@ -85,20 +85,17 @@ def show_image(i, x, y):
     plt.show()
     print("y = " + str(np.squeeze(y[:, i])))
 
-    # def plot_boundary(reg_name, m, xt, yt):
-    #     plt.title(f"Model with regularizer: {reg_name}")
-    #     axes = plt.gca()
-    #     axes.set_xlim([-1.5, 2.5])
-    #     axes.set_ylim([-1, 1.5])
-    #     plot_decision_boundary(lambda x: m.predict(x.T), xt, yt)
+
+def accuracy(x, y):
+    are_equal = np.equal(y, model.predict(x))
+    return np.mean(are_equal)
 
 
 if __name__ == "__main__":
     import daz
 
-    daz.unset_daz()
-    daz.unset_ftz()
-    np.seterr(under='raise')
+    daz.set_ftz()
+    np.seterr(under='warn')
 
     plt.rcParams['figure.figsize'] = (7.0, 4.0)
     plt.rcParams['image.interpolation'] = 'nearest'
@@ -107,46 +104,25 @@ if __name__ == "__main__":
     # load image dataset: blue/red dots in circles
     train_x_orig, train_y_orig, test_x_orig, test_y_orig, classes = \
         load_dataset()
-
     # show_image(0, train_x_orig, train_y_orig)
 
-    # Preprocessing
+    # Pre-processing
     train_x_flat = train_x_orig.reshape(train_x_orig.shape[0], -1).T
     test_x_flat = test_x_orig.reshape(test_x_orig.shape[0], -1).T
     train_x = train_x_flat / 255.
     test_x = test_x_flat / 255.
     train_y = one_hot(train_y_orig, 6)
     test_y = one_hot(test_y_orig, 6)
-
     m_train = train_x.shape[1]
     n = train_x.shape[0]
 
     # Model
     model = model(n)
 
+    # Train
     model.train(train_x.astype(dtype=np.float32),
                 train_y.astype(dtype=np.float32), epochs=1_500)
-    train_predictions = model.predict(train_x)
-    correct_prediction = np.equal(train_y_orig, train_predictions)
-    train_accuracy = np.mean(correct_prediction) * 100
 
-    print(f"Train accuracy = {train_accuracy}%")
-    # plot_boundary(name, model, train_x, train_y)
-
-    # optimizers = OrderedDict()
-    # optimizers["gradient descent"] = GradientDescentOptimizer(0.0007)
-    # optimizers["momentum"] = MomentumOptimizer(0.0007, 0.9)
-    # optimizers["adam"] = AdamOptimizer(0.0007, 0.9, 0.999)
-    #
-    # for name, opt in optimizers.items():
-    #     training = MiniBatchTraining(
-    #         batch_size=64,
-    #         optimizer=opt,
-    #         listener=CostListener()
-    #     )
-    #
-    #     model.train(train_x, train_y, epochs=10_000, training=training)
-    #     train_predictions = model.predict(train_x)
-    #     train_accuracy = binary_accuracy(train_predictions, train_y)
-    #     print(f"Train accuracy = {train_accuracy}%")
-    #     plot_boundary(name, model, train_x, train_y)
+    # Check accuracy
+    print(f"Train accuracy = {accuracy(train_x, train_y_orig)*100}%")
+    print(f"Test accuracy = {accuracy(test_x, test_y_orig)*100}%")

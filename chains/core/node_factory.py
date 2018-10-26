@@ -130,8 +130,10 @@ def tanh(logits: Node):
 def relu(logits: Node):
     return Node(ReLu(), [logits])
 
+
 def leaky_relu(logits: Node):
     return Node(LeakyReLu(), [logits])
+
 
 def dim(logits: Node, axis: int = -1):
     return Node(DimOp(axis), [logits])
