@@ -72,8 +72,8 @@ class _NoOp(Op):
                 f"shape {self.shape}, but got {value_shape}")
         if np.dtype(self.dtype) != self.output.dtype:
             raise TypeError(
-                f"{type(self)} is configured to accept only dtype {self.dtype},"
-                f" but got {self.output.dtype}")
+                f"{type(self)} is configured to accept only dtype {self.dtype}"
+                f", but got {self.output.dtype}")
 
 
 class Var(_NoOp):

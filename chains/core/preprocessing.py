@@ -1,6 +1,6 @@
 import numpy as np
 
-__all__ = ["normalize"]
+__all__ = ["normalize", "one_hot"]
 
 
 def normalize(x, axis=-1):

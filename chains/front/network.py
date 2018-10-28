@@ -4,6 +4,7 @@ import chains.core.node_factory
 from chains.core import node_factory as f, initializers as init
 from chains.core.graph import Node, Graph
 from chains.core.shape import Dim
+from chains.utils import validate
 
 
 class Network(abc.ABC):
@@ -13,6 +14,8 @@ class Network(abc.ABC):
         self.predict_graph = None
         self.inputs = None
         self.labels = None
+        self.label_size = None
+        self.cnt_classes = None
 
     def evaluate(self, x_test):
         self.predict_graph.placeholders = {self.inputs: x_test}
@@ -32,17 +35,13 @@ class Network(abc.ABC):
 
 class Sequence(Network):
 
-    # GraphBuilder actually
     def __init__(self, cnt_features: int, layers, classifier,
-                 cnt_labels=1, regularizer=None):
-        # TODO Input shape + specify m dimension
+                 regularizer=None):
         super().__init__()
         self.cnt_features = Dim.of(cnt_features)
         self.cnt_samples = Dim.unknown()
-        # TODO Allow axis swap
         self.inputs = f.placeholder(
             shape=(self.cnt_features, self.cnt_samples))
-        self.labels = f.placeholder(shape=(cnt_labels, self.cnt_samples))
 
         cost_graph, predict_graph, regularizable_vars = \
             self.inputs, self.inputs, []
@@ -51,6 +50,10 @@ class Sequence(Network):
                                                             predict_graph)
             regularizable_vars.extend(vars)
 
+        self.cnt_classes = classifier.cnt_classes
+        self.label_size = classifier.label_size
+        self.labels = f.placeholder(
+            shape=(self.label_size, self.cnt_samples))
         cost_graph, predict_graph = classifier.augment(cost_graph,
                                                        predict_graph,
                                                        self.labels)
@@ -124,6 +127,10 @@ class Dropout(SequenceElement):
 
 class Classifier(abc.ABC):
 
+    def __init__(self, label_size, cnt_classes):
+        self.label_size = label_size
+        self.cnt_classes = cnt_classes
+
     @abc.abstractmethod
     def augment(self, cost_graph: Node, predict_graph: Node, labels: Node):
         pass
@@ -131,12 +138,19 @@ class Classifier(abc.ABC):
 
 class SigmoidBinaryClassifier(Classifier):
 
+    def __init__(self):
+        super().__init__(label_size=1, cnt_classes=2)
+
     def augment(self, cost_graph: Node, predict_graph: Node, labels: Node):
         return f.sigmoid_cross_entropy(cost_graph, labels), \
                f.is_greater_than(f.sigmoid(predict_graph), 0.5)
 
 
 class SoftmaxClassifier(Classifier):  # TODO axis
+
+    def __init__(self, classes: int):
+        validate.is_strictly_greater_than("classes", classes, 2)
+        super().__init__(label_size=classes, cnt_classes=classes)
 
     def augment(self, cost_graph: Node, predict_graph: Node, labels: Node):
         return f.softmax_cross_entropy(cost_graph, labels), \

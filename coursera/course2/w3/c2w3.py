@@ -6,6 +6,7 @@ import numpy as np
 
 from chains.core import env
 from chains.core.initializers import VarInitializer
+from chains.core.metrics import accuracy
 from chains.core.optimizers import AdamOptimizer
 from chains.core.preprocessing import one_hot
 from chains.front.model import Model
@@ -64,13 +65,12 @@ def model(cnt_features):
     return Model(
         network=Sequence(
             cnt_features=cnt_features,
-            cnt_labels=6,
             layers=[
                 Dense(25), ReLu(),
                 Dense(12), ReLu(),
                 Dense(6),
             ],
-            classifier=SoftmaxClassifier(),
+            classifier=SoftmaxClassifier(classes=6),
         ),
         training=MiniBatchTraining(
             batch_size=32,
@@ -84,11 +84,6 @@ def show_image(i, x, y):
     plt.imshow(x[i])
     plt.show()
     print("y = " + str(np.squeeze(y[:, i])))
-
-
-def accuracy(x, y):
-    are_equal = np.equal(y, model.predict(x))
-    return np.mean(are_equal)
 
 
 if __name__ == "__main__":
@@ -124,5 +119,7 @@ if __name__ == "__main__":
                 train_y.astype(dtype=np.float32), epochs=1_500)
 
     # Check accuracy
-    print(f"Train accuracy = {accuracy(train_x, train_y_orig)*100}%")
-    print(f"Test accuracy = {accuracy(test_x, test_y_orig)*100}%")
+    train_predictions = model.predict(train_x)
+    test_predictions = model.predict(test_x)
+    print(f"Train accuracy = {accuracy(train_y_orig, train_predictions)}%")
+    print(f"Test accuracy = {accuracy(test_y_orig, test_predictions)}%")
