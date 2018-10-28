@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 import chains.core.node_factory
 from chains.core import node_factory as f, env
@@ -21,7 +22,7 @@ class DeepNNModel:
         self.X = f.placeholder(shape=(self.n, self.m))
         self.Y = f.placeholder(shape=(1, self.m))
 
-        # Hidden todo
+        # Hidden
         a = self.X
         a_size = self.n
         for l, h in enumerate(hidden_layers_sizes):
@@ -91,6 +92,8 @@ if __name__ == "__main__":
 
     # Data  visualization
     show_image(10, classes, train_x_orig, train_y)
+    train_y = train_y.astype(np.float32)
+    test_y = test_y.astype(np.float32)
 
     # Data preparation
     m_train = train_x_orig.shape[0]
@@ -110,8 +113,8 @@ if __name__ == "__main__":
     test_x_flatten = test_x_orig.reshape(m_test, -1).T
 
     # Standardize data to have feature values between 0 and 1.
-    train_x = train_x_flatten / 255.
-    test_x = test_x_flatten / 255.
+    train_x = np.divide(train_x_flatten, 255., dtype=np.float32)
+    test_x = np.divide(test_x_flatten, 255., dtype=np.float32)
 
     print("train_x's shape: " + str(train_x.shape))
     print("test_x's shape: " + str(test_x.shape))

@@ -72,6 +72,8 @@ class ShallowNNModel:
 if __name__ == "__main__":
     # Dataset Loading
     X, Y = load_planar_dataset()
+    X = X.astype("float32")
+    Y = Y.astype("float32")
     shape_X = X.shape
     shape_Y = Y.shape
     m = shape_X[1]  # training set size
