@@ -31,6 +31,9 @@ class LeakyReLu(ElementWiseUnaryOp):
     def simple_derivative(self):
         return np.fmax(np.sign(self.x), self.leak)
 
+    def compute_out_dtype(self, dtype):
+        return np.result_type(dtype, self.leak)
+
 
 class TanH(ElementWiseUnaryOp):
 

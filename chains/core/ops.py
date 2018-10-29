@@ -22,11 +22,17 @@ class Op(abc.ABC):
     def partials(self, d_output):
         raise RuntimeError(f"{self} does not support derivation")
 
-    def check_incoming_shapes(self, *args):
+    def check_incoming_shapes(self, *static_shapes):
         pass
 
-    def compute_out_shape(self, *args) -> StaticShape:
+    def compute_out_shape(self, *static_shapes) -> StaticShape:
         raise NotImplementedError
+
+    def check_incoming_dtype(self, *dtypes):
+        pass
+
+    def compute_out_dtype(self, *dtypes):
+        return np.result_type(*dtypes)
 
 
 class UnaryOp(Op, abc.ABC):
@@ -54,13 +60,16 @@ class _NoOp(Op):
     def __init__(self, shape: tuple, dtype=np.float32):
         super().__init__()
         validate.is_a("shape", shape, tuple)
-        validate.is_float_dtype(dtype)
+        validate.is_number_dtype(dtype)
 
         self.shape = StaticShape.from_tuple(shape)
-        self.dtype = dtype
+        self.dtype = np.dtype(dtype)
 
     def compute_out_shape(self) -> StaticShape:
         return self.shape
+
+    def compute_out_dtype(self, *dtypes):
+        return self.dtype
 
     def check(self):
         if self.output is None:
@@ -70,10 +79,10 @@ class _NoOp(Op):
             raise ValueError(
                 f"{type(self)} accepts values compatible with "
                 f"shape {self.shape}, but got {value_shape}")
-        if np.dtype(self.dtype) != self.output.dtype:
+        if np.result_type(self.output, self.dtype) != np.dtype(self.dtype):
             raise TypeError(
                 f"{type(self)} is configured to accept only dtype {self.dtype}"
-                f", but got {self.output.dtype}")
+                f", but got {self.output.dtype} that is not castable to dtype")
 
 
 class Var(_NoOp):

@@ -4,15 +4,16 @@ import time
 import matplotlib.pyplot as plt
 
 from chains.core import env
+from chains.core import metrics as m
 from chains.core.initializers import XavierInitializer
 from chains.core.optimizers import GradientDescentOptimizer
 from chains.front.model import Model
-from chains.front.network import Dense, Sequence, ReLu, \
-    SigmoidBinaryClassifier, L2Regularizer, Dropout
+from chains.front.network import Dense, Sequence, ReLu, Dropout
+from chains.front.network import SigmoidBinaryClassifier, L2Regularizer
 from chains.front.training import TrainListener, BatchTraining
-from coursera.course2.w1.reg_utils import plot_decision_boundary, \
-    load_2D_dataset
-from coursera.utils import binary_accuracy, plot_costs
+from coursera.course2.w1.reg_utils import load_2D_dataset
+from coursera.course2.w1.reg_utils import plot_decision_boundary
+from coursera.utils import plot_costs
 
 Dense.default_weight_initializer = XavierInitializer()
 
@@ -125,19 +126,16 @@ if __name__ == "__main__":
     for model in models:
         # Train
         train_x = train_x.astype("float32")
-        train_y = train_y.astype("float32")
         start_time = time.time()
         model.train(train_x, train_y, epochs=30_000)
 
         # Predict
         train_predictions = model.predict(train_x)
-        train_accuracy = binary_accuracy(actual=train_predictions,
-                                         expected=train_y)
+        train_accuracy = m.accuracy(train_predictions, train_y)
         print(f"Train accuracy = {train_accuracy}%")
 
         test_predictions = model.predict(test_x)
-        test_accuracy = binary_accuracy(actual=test_predictions,
-                                        expected=test_y)
+        test_accuracy = m.accuracy(test_predictions, test_y)
         print(f"Test accuracy = {test_accuracy}%")
 
         # Plot

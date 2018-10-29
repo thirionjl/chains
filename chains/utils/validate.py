@@ -50,8 +50,15 @@ def is_strictly_greater_than(name: str, value: int, low: int):
                          f"{min}, but got {value}")
 
 
-def is_float_dtype(value, name="dtype"):
-    dtype = np.dtype(value)  # Let is raise TypeError
-    if dtype not in (np.float32, np.float64):
-        raise TypeError(f"Parameter {name} should be 'float32' or 'float64', "
-                        f"but got {value}")
+def is_number_dtype(dtype, name="dtype"):
+    _can_be_cast_to(dtype, np.floating, name)
+
+
+def is_integer_dtype(dtype, name="dtype"):
+    _can_be_cast_to(dtype, np.integer, name)
+
+
+def _can_be_cast_to(dtype, super_type, name):
+    if not np.can_cast(dtype, super_type):
+        raise TypeError(f"Parameter {name} should be convertible "
+                        f"to {super_type}")

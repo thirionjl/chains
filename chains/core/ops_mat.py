@@ -29,6 +29,9 @@ class DimOp(UnaryOp):
     def partials(self, d_output):
         return 0,
 
+    def compute_out_dtype(self, *dtypes):
+        return np.int
+
 
 class AsScalar(UnaryOp):  # TODO Check root of graph is scalar
 
@@ -185,6 +188,9 @@ class ArgMax(UnaryOp):  # todo: Manage axis
                 out_shape.append(dim)
 
         return StaticShape.from_tuple(out_shape)
+
+    def compute_out_dtype(self, *dtypes):
+        return np.int64
 
 
 class Reshape(UnaryOp):

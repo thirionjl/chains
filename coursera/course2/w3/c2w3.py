@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     # Train
     model.train(train_x.astype(dtype=np.float32),
-                train_y.astype(dtype=np.float32), epochs=1_500)
+                train_y.astype(dtype=np.int16), epochs=1_500)
 
     # Check accuracy
     train_predictions = model.predict(train_x)

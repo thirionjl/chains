@@ -4,12 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import coursera.course1.w2.lr_utils as cs
+from chains.core import metrics as m
 from chains.core import node_factory as f, initializers as init
 from chains.core import node_factory as nf
 from chains.core import optimizers as gd, graph as g
 from chains.core.shape import Dim
-from chains.core import metrics as m
-from coursera.utils import binary_accuracy, plot_costs
+from coursera.utils import plot_costs
 
 ITERATIONS_UNIT = 100
 

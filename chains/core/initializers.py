@@ -2,6 +2,7 @@ import abc
 
 import numpy as np
 
+from chains.utils import validate
 from .shape import StaticShape
 
 __all__ = ["VarInitializer", "ConstantInitializer", "ZeroInitializer",
@@ -41,10 +42,8 @@ class RandomNormalInitializer(VarInitializer):
         self.scale = scale
 
     def initialize(self, shape, dtype):
-        if dtype != np.float32 and dtype != np.float64:
-            raise ValueError(f"Random initialization does produce only "
-                             f"np.float32 but got var with dtype={dtype}")
-        return np.random.randn(*shape).astype(dtype) * self.scale
+        validate.is_number_dtype(dtype)
+        return np.random.randn(*shape).astype(dtype, copy=False) * self.scale
 
 
 class KeepVarianceInitializer(RandomNormalInitializer, abc.ABC):

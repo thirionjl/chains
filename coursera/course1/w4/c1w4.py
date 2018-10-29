@@ -2,13 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import chains.core.node_factory
+from chains.core import metrics as m
 from chains.core import node_factory as f, env
 from chains.core.graph import Graph
 from chains.core.initializers import XavierInitializer, ZeroInitializer
 from chains.core.optimizers import GradientDescentOptimizer
 from chains.core.shape import Dim
 from coursera.course1.w4.dnn_app_utils_v3 import load_data
-from coursera.utils import binary_accuracy, plot_costs
+from coursera.utils import plot_costs
 
 ITERATION_UNIT = 100
 
@@ -140,11 +141,9 @@ if __name__ == "__main__":
 
         # Predict
         train_predictions = model.predict(train_x)
-        train_accuracy = binary_accuracy(actual=train_predictions,
-                                         expected=train_y)
+        train_accuracy = m.accuracy(train_predictions, train_y)
         print(f"Train accuracy = {train_accuracy}%")
 
         test_predictions = model.predict(test_x)
-        test_accuracy = binary_accuracy(actual=test_predictions,
-                                        expected=test_y)
+        test_accuracy = m.accuracy(test_predictions, test_y)
         print(f"Test accuracy = {test_accuracy}%")

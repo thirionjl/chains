@@ -25,29 +25,26 @@ __all__ = ["initialized_var", "var", "placeholder", "constant", "add", "sub",
 
 def initialized_var(name: str, value):
     validate.is_not_blank("var_name", name)
+    validate.is_tensor("var_value", value)
     return Node(Var(initializer=ConstantInitializer(value),
-                    shape=StaticShape.from_tuple(np.shape(value)),
+                    shape=np.shape(value),
                     dtype=np.array(value).dtype), name=name)
 
 
 def var(name: str, initializer: VarInitializer, shape, dtype=np.float32):
     validate.is_not_blank("var_name", name)
-    validate.is_a("var_initializer", initializer, VarInitializer)
     validate.is_a("var_shape", shape, tuple)
-    validate.is_float_dtype(dtype, name="var_dtype")
 
     return Node(Var(initializer=initializer,
-                    shape=StaticShape.from_tuple(shape),
+                    shape=shape,
                     dtype=dtype), name=name)
 
 
 def placeholder(shape, dtype=np.float32):
-    validate.is_float_dtype(dtype, name="placeholder_dtype")
-    return Node(Placeholder(StaticShape.from_tuple(shape), dtype))
+    return Node(Placeholder(shape, dtype))
 
 
 def constant(value, dtype=np.float32):
-    validate.is_float_dtype(dtype, name="constant_dtype")
     return Node(Constant(value, dtype))
 
 
