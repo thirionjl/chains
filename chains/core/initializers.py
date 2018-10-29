@@ -41,10 +41,10 @@ class RandomNormalInitializer(VarInitializer):
         self.scale = scale
 
     def initialize(self, shape, dtype):
-        if dtype != np.float32:
+        if dtype != np.float32 and dtype != np.float64:
             raise ValueError(f"Random initialization does produce only "
                              f"np.float32 but got var with dtype={dtype}")
-        return np.random.randn(*shape).astype(np.float32) * self.scale
+        return np.random.randn(*shape).astype(dtype) * self.scale
 
 
 class KeepVarianceInitializer(RandomNormalInitializer, abc.ABC):
@@ -57,7 +57,7 @@ class KeepVarianceInitializer(RandomNormalInitializer, abc.ABC):
     def initialize(self, shape, dtype):
         StaticShape.from_tuple(shape).check_axis_index(self.axis_size_divider)
         r = super().initialize(shape, dtype)
-        sq = np.sqrt(self.k / shape[self.axis_size_divider], dtype=np.float32)
+        sq = np.sqrt(self.k / shape[self.axis_size_divider], dtype=dtype)
         return r * sq
 
 

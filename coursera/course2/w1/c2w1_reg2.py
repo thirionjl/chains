@@ -124,6 +124,8 @@ if __name__ == "__main__":
 
     for model in models:
         # Train
+        train_x = train_x.astype("float32")
+        train_y = train_y.astype("float32")
         start_time = time.time()
         model.train(train_x, train_y, epochs=30_000)
 

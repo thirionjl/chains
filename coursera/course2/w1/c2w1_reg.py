@@ -20,8 +20,8 @@ class NNModel:
         self.n = features_count
         self.L = len(hidden_layers_sizes)
 
-        self.X = f.placeholder(shape=(self.n, self.m))
-        self.Y = f.placeholder(shape=(1, self.m))
+        self.X = f.placeholder(shape=(self.n, self.m), dtype=np.float64)
+        self.Y = f.placeholder(shape=(1, self.m), dtype=np.float64)
         weights, biases = self.build_variables(self.n, hidden_layers_sizes)
 
         # Cost graph
@@ -59,15 +59,15 @@ class NNModel:
         i = 0
         for i, h in enumerate(hidden_layers_sizes):
             w = f.var("W" + str(i + 1), init.XavierInitializer(),
-                      shape=(h, a_size))
-            b = f.var("b" + str(i + 1), init.ZeroInitializer(), shape=(h, 1))
+                      shape=(h, a_size), dtype=np.float64)
+            b = f.var("b" + str(i + 1), init.ZeroInitializer(), shape=(h, 1), dtype=np.float64)
             weight_matrices.append(w)
             bias_matrices.append(b)
             a_size = h
 
         w = f.var("W" + str(i + 2), init.XavierInitializer(),
-                  shape=(1, a_size))
-        b = f.var("b" + str(i + 2), init.ZeroInitializer(), shape=(1, 1))
+                  shape=(1, a_size), dtype=np.float64)
+        b = f.var("b" + str(i + 2), init.ZeroInitializer(), shape=(1, 1), dtype=np.float64)
         weight_matrices.append(w)
         bias_matrices.append(b)
         return weight_matrices, bias_matrices
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     for model in models:
         # Train
         start_time = time.time()
-        costs = model.train(train_x, train_y)
+        costs = model.train(train_x, train_y.astype("float64"))
         end_time = time.time()
 
         plot_costs(costs, unit=ITERATION_UNIT, learning_rate=0.3)

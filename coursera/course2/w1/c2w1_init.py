@@ -114,6 +114,8 @@ if __name__ == "__main__":
     for initializer in NNModel.initializers.keys():
         # Model
         model = NNModel(n, initializer)
+        train_x = train_x.astype("float32")
+        train_y = train_y.astype("float32")
         costs = model.train(train_x, train_y, print_cost=True)
         plot_costs(costs, unit=ITERATION_UNIT, learning_rate=0.01)
 

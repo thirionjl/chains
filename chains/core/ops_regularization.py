@@ -61,8 +61,12 @@ class Dropout(ElementWiseUnaryOp):
 
     def compute(self, x: Tensor):
         super().compute(x)
-        self.mask = np.random.random_sample(np.shape(x)) < self.keep_prob
+        self.mask = self.rand(np.shape(x), x.dtype) < self.keep_prob
         self.output = self.mask * self.x / self.keep_prob
+
+    @staticmethod
+    def rand(shape: tuple, dtype) -> np.ndarray:
+        return np.random.random_sample(shape).astype(dtype, copy=False)
 
     def simple_derivative(self):
         return self.mask / self.keep_prob
