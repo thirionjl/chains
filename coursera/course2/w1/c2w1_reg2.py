@@ -32,7 +32,7 @@ class CostListener(TrainListener):
     def on_epoch_start(self, epoch_num):
         env.seed(1)
 
-    def on_iteration(self, epoch, num_batch, i, cost):
+    def on_iteration(self, epoch, i, cost):
         if i % 1000 == 0:
             self.costs.append(cost)
 

@@ -40,9 +40,6 @@ class CostListener(TrainListener):
         if epoch % 1000 == 0:
             print(f"Cost after epoch {epoch}: {cost}")
 
-    def on_iteration(self, epoch, num_batch, i, cost):
-        pass
-
     def on_end(self):
         plot_costs(self.costs, unit=100, learning_rate=0.0007)
 
@@ -103,7 +100,8 @@ if __name__ == "__main__":
             listener=CostListener()
         )
 
-        model.train(train_x.astype('float32'), train_y, epochs=10_000, training=training)
+        model.train(train_x.astype('float32'), train_y, epochs=10_000,
+                    training=training)
         train_predictions = model.predict(train_x)
         train_accuracy = m.accuracy(train_predictions, train_y)
         print(f"Train accuracy = {train_accuracy}%")

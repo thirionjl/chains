@@ -69,10 +69,9 @@ class MomentumOptimizer(Optimizer):
         _initialize_zeros(graph, self.v)
 
     def apply_single_gradient(self, var, grad):
-        velocity = self.v[var]
-        velocity = self.beta * velocity + (1 - self.beta) * grad
+        velocity = self.beta * self.v[var] + (1 - self.beta) * grad
         self.v[var] = velocity
-        return var.value - self.lr * grad
+        return var.value - self.lr * velocity
 
 
 class AdamOptimizer(Optimizer):

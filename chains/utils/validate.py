@@ -24,7 +24,7 @@ def is_one_of(name: str, value: object, legal_values: Iterable):
 def is_not_one_of(name: str, value: object, forbidden_values: Iterable):
     if value in forbidden_values:
         raise ValueError(f"Parameter {name} should not be one of "
-                         f"{legal_values}, but got {value}")
+                         f"{forbidden_values}, but got {value}")
 
 
 def is_a(name: str, value: object, t: type):

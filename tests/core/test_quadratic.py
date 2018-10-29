@@ -20,7 +20,9 @@ def test_quadratic():
     cost_function = nf.as_scalar(expr) + 7
 
     cost = Graph(cost_function)
-    cost.placeholders = {b: np.array([1, 0, 0]).reshape(3, 1)}
+    cost.placeholders = {
+        b: np.array([1, 0, 0]).reshape(3, 1).astype('float32')
+    }
     cost.initialize_variables()
     optimizer = gd.GradientDescentOptimizer(0.1)
     optimizer.initialize_and_check(cost)

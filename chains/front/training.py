@@ -27,7 +27,7 @@ class TrainListener:
     def on_epoch_end(self, epoch_num, cost):
         pass
 
-    def on_iteration(self, epoch_num, mini_batch_num, iteration, cost):
+    def on_iteration(self, epoch_num, iteration, cost):
         pass
 
 
@@ -72,7 +72,7 @@ class MiniBatchTraining(Training):
 
         for epoch in range(epochs):
             self.listener.on_epoch_start(epoch)
-            epoch_cost = self._train_epoch(slices, feed_method, x_train,
+            epoch_cost = self._train_epoch(epoch, slices, feed_method, x_train,
                                            y_train, cnt_samples)
             self.listener.on_epoch_end(epoch, epoch_cost)
 
@@ -83,15 +83,19 @@ class MiniBatchTraining(Training):
         feed_method(x_train, y_train)
         self.optimizer.initialize_and_check(cost_graph)
 
-    def _train_epoch(self, batch_slices, feed_method, x, y, cnt_samples):
+    def _train_epoch(self, epoch, batch_slices, feed_method,
+                     x, y, cnt_samples):
         epoch_cost = 0
         cnt_batches = len(batch_slices)
         x_shuffled, y_shuffled = self._shuffle(x, y, cnt_samples)
 
+        iteration = epoch * cnt_batches
         for batch_slice in batch_slices:
             feed_method(x_shuffled[batch_slice], y_shuffled[batch_slice])
             self.optimizer.run()
             epoch_cost += self.optimizer.cost / cnt_batches
+            self.listener.on_iteration(epoch, iteration, self.optimizer.cost)
+            iteration += 1
         return epoch_cost
 
     def _shuffle(self, x, y, cnt_examples):
@@ -146,7 +150,7 @@ class BatchTraining(Training):
             self.listener.on_epoch_start(i)
             self.optimizer.run()
             cost = self.optimizer.cost
-            self.listener.on_iteration(i, 0, i, cost)
+            self.listener.on_iteration(i, i, cost)
             self.listener.on_epoch_end(i, cost)
 
         self.listener.on_end()

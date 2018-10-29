@@ -10,9 +10,12 @@ def test_sigmoid_cross_entropy_with_logits():
 
     sce_logits.compute(logits, labels)
 
-    np.testing.assert_allclose(sce_logits.activations, np.array([0.5, 0.88079708]))
-    np.testing.assert_allclose(sce_logits.output, np.array([0.69314718, 0.12692801]))
-    np.testing.assert_allclose(sce_logits.partials(1)[0], np.array([0.5, -0.11920292]))
+    np.testing.assert_allclose(sce_logits.activations,
+                               np.array([0.5, 0.88079708]))
+    np.testing.assert_allclose(sce_logits.output,
+                               np.array([0.69314718, 0.12692801]))
+    np.testing.assert_allclose(sce_logits.partials(1)[0],
+                               np.array([0.5, -0.11920292]))
 
 
 def test_sigmoid_cross_entropy():
@@ -24,11 +27,12 @@ def test_sigmoid_cross_entropy():
 
     np.testing.assert_allclose(sce.activations, np.array([[0.5, 0.88079708]]))
     np.testing.assert_allclose(sce.output, 0.4100375958014589)
-    np.testing.assert_allclose(sce.partials(1)[0], np.array([[0.25, -0.05960146]]))
+    np.testing.assert_allclose(sce.partials(1)[0],
+                               np.array([[0.25, -0.05960146]]))
 
 
 def test_softmax_cross_entropy_with_logits():
-    sce_logits = losses.SoftMaxCrossEntropyWithLogits(class_axis=0)
+    sce_logits = losses.SoftMaxCrossEntropyWithLogits(class_axis=0, epsilon=0)
     labels = np.array([[1, 0],
                        [0, 0],
                        [0, 0],
@@ -45,7 +49,8 @@ def test_softmax_cross_entropy_with_logits():
                                          [1.58422012e-02, 8.31522825e-07],
                                          [1.17058913e-01, 6.14416880e-06],
                                          [8.64954877e-01, 9.99992912e-01]]))
-    np.testing.assert_allclose(sce_logits.output, np.array([6.14507794e+00, 7.08825113e-06]))
+    np.testing.assert_allclose(sce_logits.output,
+                               np.array([6.14507794e+00, 7.08825113e-06]))
     np.testing.assert_allclose(sce_logits.partials(1)[0],
                                np.array([[-9.97855991e-01, 1.12534377e-07],
                                          [1.58422012e-02, 8.31522825e-07],
@@ -85,7 +90,8 @@ def _sample_sigmoid_case():
     labels = tf.constant(np.array([0.0, 1.0]))
     logits = tf.Variable(np.array([0.0, 2.0]))
 
-    sigmoid_ce_with_logits = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits)
+    sigmoid_ce_with_logits = tf.nn.sigmoid_cross_entropy_with_logits(
+        labels=labels, logits=logits)
     sigmoid_ce = tf.reduce_mean(sigmoid_ce_with_logits)
     sigmoid = tf.nn.sigmoid(logits)
     gd = tf.train.GradientDescentOptimizer(learning_rate=0.1)
@@ -119,7 +125,8 @@ def _sample_softmax_case():
     labels = tf.constant(la.T)
     logits = tf.Variable(lo.T)
 
-    softmax_ce_with_logits = tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels, logits=logits)
+    softmax_ce_with_logits = tf.nn.softmax_cross_entropy_with_logits_v2(
+        labels=labels, logits=logits)
     softmax_ce = tf.reduce_mean(softmax_ce_with_logits)
     softmax = tf.nn.softmax(logits)
     gd = tf.train.GradientDescentOptimizer(learning_rate=0.1)

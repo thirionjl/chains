@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import chains.core.node_factory
 from chains.core import node_factory as f, initializers as init
 from chains.core import optimizers as gd, graph as g, env
+from chains.core.metrics import accuracy
 from chains.core.shape import Dim
 from coursera.course1.w3.planar_utils import load_planar_dataset
 from coursera.course1.w3.planar_utils import plot_decision_boundary
@@ -89,7 +90,7 @@ if __name__ == "__main__":
 
         # Predict
         train_predictions = model.predict(X)
-        train_accuracy = m.accuracy(actual=train_predictions, expected=Y)
+        train_accuracy = accuracy(train_predictions, Y)
         print(f"Train accuracy = {train_accuracy}%")
 
         # Plot
