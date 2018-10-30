@@ -3,6 +3,8 @@ import numpy as np
 from chains.core.ops_activation import SoftMax, LeakyReLu
 from chains.core.ops_losses import SoftMaxCrossEntropy
 from chains.core.ops_mat import ArgMax
+from chains.core.ops_norm import BatchNormTraining, BatchNormPredict
+from chains.core.tensor import Tensor
 from chains.utils import validate
 from .graph import Node
 from .initializers import ConstantInitializer, VarInitializer
@@ -152,3 +154,22 @@ def dropout(keep_prob, logits: Node):
 def fully_connected(inputs: Node, weights: Node, bias: Node,
                     *, first_layer=False) -> Node:
     return Node(FullyConnected(not first_layer), [inputs, weights, bias])
+
+
+def batch_norm_train(inputs: Node, beta: Node, gamma: Node, momentum=0.99,
+                     epsilon=1e-3, sample_axis=-1) -> Node:
+    bn = BatchNormTraining(momentum, epsilon, sample_axis)
+    return Node(bn, [beta, gamma, inputs])
+
+
+def batch_norm_predict(batch_norm: Node, inputs: Node, beta: Node,
+                       gamma: Node) -> Node:
+    bn = BatchNormPredict.from_training(batch_norm)
+    return Node(bn, [beta, gamma, inputs])
+
+
+def batch_norm_predict_fixed(mean: Tensor, variance: Tensor, inputs: Node,
+                             beta: Node,
+                             gamma: Node) -> Node:
+    bn = BatchNormPredict.from_fixed_values(mean, variance)
+    return Node(bn, [beta, gamma, inputs])

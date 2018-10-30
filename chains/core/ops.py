@@ -28,9 +28,6 @@ class Op(abc.ABC):
     def compute_out_shape(self, *static_shapes) -> StaticShape:
         raise NotImplementedError
 
-    def check_incoming_dtype(self, *dtypes):
-        pass
-
     def compute_out_dtype(self, *dtypes):
         return np.result_type(*dtypes)
 

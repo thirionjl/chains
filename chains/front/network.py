@@ -46,7 +46,9 @@ class Sequence(Network):
         cost_graph, predict_graph, regularizable_vars = \
             self.inputs, self.inputs, []
         for pos, layer in enumerate(layers):
-            cost_graph, predict_graph, vars = layer.augment(pos, cost_graph,
+            cost_graph, predict_graph, vars = layer.augment(pos,
+                                                            self.cnt_samples,
+                                                            cost_graph,
                                                             predict_graph)
             regularizable_vars.extend(vars)
 
@@ -74,7 +76,7 @@ class SequenceElement(abc.ABC):
         self.regularizable_vars = []
 
     @abc.abstractmethod
-    def augment(self, pos: int, logits: Node, labels: Node):
+    def augment(self, pos: int, dim_features: Dim, logits: Node, labels: Node):
         pass
 
 
@@ -90,9 +92,10 @@ class Dense(SequenceElement):
         self.bias_initializer = self.default_bias_initializer \
             if bias_initializer is None else bias_initializer
 
-    def augment(self, pos: int, cost_g: Node, predict_g: Node):
+    def augment(self, pos: int, dim_features: Dim, cost_g: Node,
+                predict_g: Node):
         # TODO Allow different axis for the "features" and "examples" dimension
-        cnt_features = cost_g.shape[0]
+        cnt_features = dim_features.value
         w = f.var("W" + str(pos + 1), self.weight_initializer,
                   shape=(self.neurons, cnt_features))
         b = f.var("b" + str(pos + 1), self.bias_initializer,
@@ -104,13 +107,15 @@ class Dense(SequenceElement):
 
 class ReLu(SequenceElement):
 
-    def augment(self, pos: int, cost_graph: Node, predict_graph: Node):
+    def augment(self, pos: int, dim_features: Dim, cost_graph: Node,
+                predict_graph: Node):
         return f.relu(cost_graph), f.relu(predict_graph), []
 
 
 class LeakyReLu(SequenceElement):
 
-    def augment(self, pos: int, cost_graph: Node, predict_graph: Node):
+    def augment(self, pos: int, dim_features: Dim, cost_graph: Node,
+                predict_graph: Node):
         return f.leaky_relu(cost_graph), f.leaky_relu(predict_graph), []
 
 
@@ -120,9 +125,26 @@ class Dropout(SequenceElement):
             raise ValueError(f"Keep probability should be between 0 and 1")
         self.keep_prob = keep_prob
 
-    def augment(self, pos: int, cost_graph: Node, predict_graph: Node):
+    def augment(self, pos: int, dim_features: Dim, cost_graph: Node,
+                predict_graph: Node):
         return chains.core.node_factory.dropout(self.keep_prob,
                                                 cost_graph), predict_graph, []
+
+
+class BatchNorm(SequenceElement):
+
+    def augment(self, pos: int, dim_features: Dim, cost_graph: Node,
+                predict_graph: Node):
+        cnt_features = dim_features.value
+        beta = f.var("Beta" + str(pos + 1), self.weight_initializer,
+                     shape=(cnt_features, 1))
+        gamma = f.var("Gamma" + str(pos + 1), self.bias_initializer,
+                      shape=(cnt_features, 1))
+
+        bnt = f.batch_norm_train(cost_graph, beta, gamma)
+        bnp = f.batch_norm_predict(bnt, predict_graph, beta, gamma)
+
+        return bnt, bnp, [beta, gamma]
 
 
 class Classifier(abc.ABC):
