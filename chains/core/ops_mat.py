@@ -13,7 +13,7 @@ __all__ = ["DimOp", "AsScalar", "Transpose", "MatMul", "Reduction",
 class DimOp(UnaryOp):
 
     def __init__(self, axis: int = -1):
-        if type(axis) != int:
+        if not isinstance(axis, int):
             raise ValueError(f"axis should be an integer got {type(axis)}")
         self.axis = axis
 
@@ -28,6 +28,9 @@ class DimOp(UnaryOp):
 
     def partials(self, d_output):
         return 0,
+
+    def compute_out_dtype(self, *dtypes):
+        return np.int
 
 
 class AsScalar(UnaryOp):  # TODO Check root of graph is scalar
@@ -160,6 +163,34 @@ class MaxComponent(Reduction):  # todo: Manage axis
         d = np.zeros(np.shape(self.x))
         d[self.maxIndex] = d_output
         return d,
+
+
+class ArgMax(UnaryOp):  # todo: Manage axis
+
+    def __init__(self, axis=0):
+        super().__init__()  # TODO: Check incoming shape against axis
+        self.axis = axis
+
+    def compute(self, x: Tensor):
+        super().compute(x)
+        self.output = np.argmax(x, axis=self.axis)
+
+    def partials(self, d_output):
+        return np.zeros(np.shape(self.x)),
+
+    def check_incoming_shapes(self, x_shape: StaticShape):
+        x_shape.check_axis_index(self.axis)
+
+    def compute_out_shape(self, x_shape: StaticShape) -> StaticShape:
+        out_shape = []
+        for axis, dim in enumerate(x_shape):
+            if axis != self.axis:
+                out_shape.append(dim)
+
+        return StaticShape.from_tuple(out_shape)
+
+    def compute_out_dtype(self, *dtypes):
+        return np.int64
 
 
 class Reshape(UnaryOp):

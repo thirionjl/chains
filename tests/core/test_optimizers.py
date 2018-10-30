@@ -4,6 +4,7 @@ from numpy.testing import assert_allclose
 from chains.core.graph import Graph
 from chains.core.node_factory import initialized_var
 from chains.core.optimizers import MomentumOptimizer, AdamOptimizer
+from chains.core.shape import StaticShape
 
 
 class DummyGraph(Graph):
@@ -36,6 +37,10 @@ class DummyGraph(Graph):
                             [-0.67124613, -0.0126646, -1.11731035]]),
             self.b2: array([[0.2344157], [1.65980218], [0.74204416]])
         }
+
+    @property
+    def shape(self):
+        return StaticShape.scalar()
 
 
 def test_momentum_coursera():

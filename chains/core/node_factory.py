@@ -1,5 +1,11 @@
 import numpy as np
 
+from chains.core.ops_activation import SoftMax, LeakyReLu
+from chains.core.ops_losses import SoftMaxCrossEntropy
+from chains.core.ops_mat import ArgMax
+from chains.core.ops_norm import BatchNormTraining, BatchNormPredict
+from chains.core.tensor import Tensor
+from chains.utils import validate
 from .graph import Node
 from .initializers import ConstantInitializer, VarInitializer
 from .ops import Var, Placeholder, Constant
@@ -20,30 +26,28 @@ __all__ = ["initialized_var", "var", "placeholder", "constant", "add", "sub",
 
 
 def initialized_var(name: str, value):
-    if name is None:
-        raise ValueError('A variable must have a name')
+    validate.is_not_blank("var_name", name)
+    validate.is_tensor("var_value", value)
     return Node(Var(initializer=ConstantInitializer(value),
-                    shape=StaticShape.from_tuple(np.shape(value)),
+                    shape=np.shape(value),
                     dtype=np.array(value).dtype), name=name)
 
 
-def var(name: str, initializer: VarInitializer, shape, dtype=np.float64):
-    if name is None:
-        raise ValueError('A variable must have a name')
-    if not isinstance(initializer, VarInitializer):
-        raise ValueError('Var should be passed a VarInitializer subclass')
+def var(name: str, initializer: VarInitializer, shape, dtype=np.float32):
+    validate.is_not_blank("var_name", name)
+    validate.is_a("var_shape", shape, tuple)
 
     return Node(Var(initializer=initializer,
-                    shape=StaticShape.from_tuple(shape),
+                    shape=shape,
                     dtype=dtype), name=name)
 
 
-def placeholder(shape, dtype=np.float64):
-    return Node(Placeholder(StaticShape.from_tuple(shape), dtype))
+def placeholder(shape, dtype=np.float32):
+    return Node(Placeholder(shape, dtype))
 
 
-def constant(value):
-    return Node(Constant(value))
+def constant(value, dtype=np.float32):
+    return Node(Constant(value, dtype))
 
 
 def add(left: Node, right: Node):
@@ -94,8 +98,8 @@ def as_scalar(left: Node):
     return Node(AsScalar(), [left])
 
 
-# def softmax_cross_entropy(logits: Node, labels: Node):
-#     return Node(SoftMaxCrossEntropyWithLogits(), [logits, labels])
+def softmax_cross_entropy(logits: Node, labels: Node):
+    return Node(SoftMaxCrossEntropy(), [logits, labels])
 
 
 def sigmoid_cross_entropy(logits: Node, labels: Node):
@@ -106,8 +110,16 @@ def sigmoid(logits: Node):
     return Node(Sigmoid(), [logits])
 
 
+def softmax(logits: Node):
+    return Node(SoftMax(), [logits])
+
+
 def is_greater_than(logits: Node, threshold: float):
     return Node(IsGreaterThan(threshold), [logits])
+
+
+def argmax(logits: Node, axis=0):
+    return Node(ArgMax(axis), [logits])
 
 
 def tanh(logits: Node):
@@ -118,14 +130,18 @@ def relu(logits: Node):
     return Node(ReLu(), [logits])
 
 
+def leaky_relu(logits: Node):
+    return Node(LeakyReLu(), [logits])
+
+
 def dim(logits: Node, axis: int = -1):
     return Node(DimOp(axis), [logits])
 
 
 def l2_norm_regularizer(lambd, batch_size, weight_matrices_array):
-    if type(batch_size) == int:
+    if isinstance(batch_size, int):
         batch_size_node = Node(Constant(batch_size))
-    elif type(batch_size) == Node:
+    elif isinstance(batch_size, Node):
         batch_size_node = batch_size
     return Node(L2NormRegularization(lambd=lambd),
                 incoming_nodes=[batch_size_node] + weight_matrices_array)
@@ -138,3 +154,22 @@ def dropout(keep_prob, logits: Node):
 def fully_connected(inputs: Node, weights: Node, bias: Node,
                     *, first_layer=False) -> Node:
     return Node(FullyConnected(not first_layer), [inputs, weights, bias])
+
+
+def batch_norm_train(inputs: Node, beta: Node, gamma: Node, momentum=0.99,
+                     epsilon=1e-3, sample_axis=-1) -> Node:
+    bn = BatchNormTraining(momentum, epsilon, sample_axis)
+    return Node(bn, [beta, gamma, inputs])
+
+
+def batch_norm_predict(batch_norm: Node, inputs: Node, beta: Node,
+                       gamma: Node) -> Node:
+    bn = BatchNormPredict.from_training(batch_norm)
+    return Node(bn, [beta, gamma, inputs])
+
+
+def batch_norm_predict_fixed(mean: Tensor, variance: Tensor, inputs: Node,
+                             beta: Node,
+                             gamma: Node) -> Node:
+    bn = BatchNormPredict.from_fixed_values(mean, variance)
+    return Node(bn, [beta, gamma, inputs])

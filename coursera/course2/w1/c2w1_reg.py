@@ -2,11 +2,12 @@
 import cProfile
 import time
 
+from chains.core import metrics as m
 from chains.core import node_factory as f, initializers as init
 from chains.core import optimizers as gd, graph as g, env
 from chains.core.shape import Dim
 from coursera.course2.w1.reg_utils import *
-from coursera.utils import binary_accuracy, plot_costs
+from coursera.utils import plot_costs
 
 ITERATION_UNIT = 1_000
 
@@ -20,7 +21,7 @@ class NNModel:
         self.n = features_count
         self.L = len(hidden_layers_sizes)
 
-        self.X = f.placeholder(shape=(self.n, self.m))
+        self.X = f.placeholder(shape=(self.n, self.m), dtype=np.float64)
         self.Y = f.placeholder(shape=(1, self.m))
         weights, biases = self.build_variables(self.n, hidden_layers_sizes)
 
@@ -144,13 +145,11 @@ if __name__ == "__main__":
 
         # Predict
         train_predictions = model.predict(train_x)
-        train_accuracy = binary_accuracy(actual=train_predictions,
-                                         expected=train_y)
+        train_accuracy = m.accuracy(train_predictions, train_y)
         print(f"Train accuracy = {train_accuracy}%")
 
         test_predictions = model.predict(test_x)
-        test_accuracy = binary_accuracy(actual=test_predictions,
-                                        expected=test_y)
+        test_accuracy = m.accuracy(test_predictions, test_y)
         print(f"Test accuracy = {test_accuracy}%")
 
         # Plot

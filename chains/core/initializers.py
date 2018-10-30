@@ -2,6 +2,7 @@ import abc
 
 import numpy as np
 
+from chains.utils import validate
 from .shape import StaticShape
 
 __all__ = ["VarInitializer", "ConstantInitializer", "ZeroInitializer",
@@ -35,16 +36,19 @@ class ZeroInitializer(VarInitializer):
         return np.zeros(shape, dtype=dtype)
 
 
+class OneInitializer(VarInitializer):
+    def initialize(self, shape, dtype):
+        return np.ones(shape, dtype=dtype)
+
+
 class RandomNormalInitializer(VarInitializer):
 
     def __init__(self, scale: float = 0.01):
         self.scale = scale
 
     def initialize(self, shape, dtype):
-        if dtype != np.float64:
-            raise ValueError(f"Random initialization does produce only "
-                             f"np.float64 but got var with dtype={dtype}")
-        return np.random.randn(*shape) * self.scale
+        validate.is_number_dtype(dtype)
+        return np.random.randn(*shape).astype(dtype, copy=False) * self.scale
 
 
 class KeepVarianceInitializer(RandomNormalInitializer, abc.ABC):
@@ -57,7 +61,8 @@ class KeepVarianceInitializer(RandomNormalInitializer, abc.ABC):
     def initialize(self, shape, dtype):
         StaticShape.from_tuple(shape).check_axis_index(self.axis_size_divider)
         r = super().initialize(shape, dtype)
-        return r * np.sqrt(self.k / shape[self.axis_size_divider])
+        sq = np.sqrt(self.k / shape[self.axis_size_divider], dtype=dtype)
+        return r * sq
 
 
 class HeInitializer(KeepVarianceInitializer):

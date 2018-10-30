@@ -1,3 +1,6 @@
+import numpy as np
+
+from chains.utils import validate
 from .ops import ElementWiseBinaryOp, ElementWiseUnaryOp
 from .tensor import Tensor
 
@@ -24,7 +27,7 @@ class Negate(ElementWiseUnaryOp):
 
 
 class ConstMul(ElementWiseUnaryOp):
-    def __init__(self, c: float):
+    def __init__(self, c: Tensor):
         super().__init__()
         self.c = c
 
@@ -34,6 +37,9 @@ class ConstMul(ElementWiseUnaryOp):
 
     def simple_derivative(self):
         return self.c
+
+    def compute_out_dtype(self, dtype):
+        return np.result_type(self.c, dtype)
 
 
 class Mul(ElementWiseBinaryOp):
@@ -49,6 +55,7 @@ class Mul(ElementWiseBinaryOp):
 class Pow(ElementWiseUnaryOp):
 
     def __init__(self, exponent: int):
+        validate.is_integer_dtype(int)
         self.exponent = exponent
 
     def compute(self, x: Tensor):
@@ -58,6 +65,9 @@ class Pow(ElementWiseUnaryOp):
     def simple_derivative(self):
         return self.exponent * self.x ** (self.exponent - 1)
 
+    def compute_out_dtype(self, dtype):
+        return np.result_type(self.exponent, dtype)
+
 
 class IsGreaterThan(ElementWiseUnaryOp):
 
@@ -66,7 +76,10 @@ class IsGreaterThan(ElementWiseUnaryOp):
 
     def compute(self, x):
         super().compute(x)
-        self.output = (x > self.threshold).astype(int)
+        self.output = (x > self.threshold).astype(np.int8)
+
+    def compute_out_dtype(self, dtype):
+        return np.int8
 
     def simple_derivative(self):
         return 0

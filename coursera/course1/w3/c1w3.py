@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import chains.core.node_factory
 from chains.core import node_factory as f, initializers as init
 from chains.core import optimizers as gd, graph as g, env
+from chains.core.metrics import accuracy
 from chains.core.shape import Dim
 from coursera.course1.w3.planar_utils import load_planar_dataset
 from coursera.course1.w3.planar_utils import plot_decision_boundary
-from coursera.utils import binary_accuracy
 
 ITERATION_UNIT = 100
 
@@ -72,6 +72,8 @@ class ShallowNNModel:
 if __name__ == "__main__":
     # Dataset Loading
     X, Y = load_planar_dataset()
+    X = X.astype("float32")
+    Y = Y.astype("float32")
     shape_X = X.shape
     shape_Y = Y.shape
     m = shape_X[1]  # training set size
@@ -88,7 +90,7 @@ if __name__ == "__main__":
 
         # Predict
         train_predictions = model.predict(X)
-        train_accuracy = binary_accuracy(actual=train_predictions, expected=Y)
+        train_accuracy = accuracy(train_predictions, Y)
         print(f"Train accuracy = {train_accuracy}%")
 
         # Plot

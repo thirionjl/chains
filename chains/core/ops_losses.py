@@ -1,7 +1,8 @@
 import numpy as np
 
-from .ops_activation import Sigmoid
+from chains.core.ops_activation import SoftMax
 from .ops import BinaryOp
+from .ops_activation import Sigmoid
 from .shape import StaticShape
 from .tensor import Tensor
 
@@ -52,25 +53,18 @@ class SigmoidCrossEntropy(SigmoidCrossEntropyWithLogits):
 
 class SoftMaxCrossEntropyWithLogits(BinaryOp):
 
-    def __init__(self, class_axis=0, keepdims=False):
+    def __init__(self, class_axis=0, keepdims=False, epsilon=1e-10):
         super().__init__()
         self.activations = None
         self.class_axis = class_axis
         self.keepdims = keepdims
+        self.epsilon = epsilon
 
-    def reduce_max(self, x: Tensor):  # dim(x) = (x,y,z,t)
-        # dims(max_1) =  (x,y,z,1)
-        max_1 = np.max(x, axis=self.class_axis, keepdims=True)
-        return np.subtract(x, max_1)  # dim(out) = (x,y,z,t)
-
-    def compute(self, x: Tensor, y: Tensor):  # dim(x) = (x,y,z,t) , dim(y) = t
+    def compute(self, x: Tensor, y: Tensor):
         super().compute(x, y)
+        self.activations = SoftMax.softmax(x, self.class_axis)
 
-        e = np.exp(self.reduce_max(x))
-        s = np.sum(e, axis=self.class_axis, keepdims=True)  # dims (x,y,z,1)
-        self.activations = np.divide(e, s)  # dim(a) = (x,y,z,t)
-
-        self.output = -np.sum(y * np.log(self.activations),
+        self.output = -np.sum(y * np.log(self.activations + self.epsilon),
                               axis=self.class_axis, keepdims=self.keepdims)
 
     def partials(self, d_output):
