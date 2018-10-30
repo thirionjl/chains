@@ -13,7 +13,7 @@ class L2NormRegularization(Op):
         super().__init__()
         if lambd is None:
             raise ValueError("L2NormRegularization parameter is mandatory")
-        if type(lambd) != float:
+        if not isinstance(lambd, float):
             raise ValueError(
                 f"L2NormRegularization parameter should be a float, "
                 f"got {type(lambd)}")
@@ -28,8 +28,12 @@ class L2NormRegularization(Op):
         if not batch_size.is_scalar:
             raise ValueError("First argument must be scalar")
 
-    def compute_out_shape(self, *args) -> StaticShape:
+    def compute_out_shape(self, *static_shapes) -> StaticShape:
         return StaticShape.scalar()
+
+    def compute_out_dtype(self, *dtypes):
+        all_dtypes = dtypes[1:] + (self.lambd, self.epsilon)
+        return np.result_type(*all_dtypes)
 
     def compute(self, batch_size, *weights: tuple):
         self.batch_size = batch_size
@@ -58,6 +62,9 @@ class Dropout(ElementWiseUnaryOp):
 
     def compute_out_shape(self, x_shape: StaticShape) -> StaticShape:
         return x_shape
+
+    def compute_out_dtype(self, dtype):
+        return np.result_type(dtype, self.keep_prob, np.bool)
 
     def compute(self, x: Tensor):
         super().compute(x)

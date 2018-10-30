@@ -1,6 +1,8 @@
 from collections import deque, defaultdict
 from typing import Dict, Set
 
+import numpy as np
+
 from .ops import Var, Constant, Placeholder, Op
 from .ops_arithmetic import Negate, Pow, Add, ConstMul, Mul
 from .ops_mat import Transpose, MatMul
@@ -26,8 +28,10 @@ class Node:
 
     def __init__(self, op: Op, incoming_nodes=[], name: str = None):
         incoming_shapes = tuple(n.shape for n in incoming_nodes)
+        incoming_dtypes = tuple(n.dtype for n in incoming_nodes)
         op.check_incoming_shapes(*incoming_shapes)
         self.shape = op.compute_out_shape(*incoming_shapes)
+        self.dtype = np.dtype(op.compute_out_dtype(*incoming_dtypes))
         self._op = op
         self._op_type = self._op_type(op)
         self._name = Node._name(op, name)
@@ -55,11 +59,13 @@ class Node:
 
     def __str__(self):
         _in = [n.name for n in self.incoming_nodes]
-        return f"<{self._op_type} '{self._name}' shape={self.shape}, in={_in}>"
+        return f"<{self._op_type} '{self._name}' shape={self.shape}, " \
+               f"dtype={self.dtype}, in={_in}>"
 
     def __repr__(self):
         _in = [n.name for n in self.incoming_nodes]
-        return f"Node({self._op!r}, {_in!r}, name={self._name!r})"
+        return f"Node({self._op!r}, {_in!r}, name={self._name!r}), " \
+               f"dtype={self.dtype!r}"
 
     def __add__(self, other):
         if is_tensor(other):
@@ -265,3 +271,7 @@ class Graph:
         # case of random initializers
         for v in sorted(self.variables, key=lambda n: n.name):
             v.initialize()
+
+    @property
+    def shape(self):
+        return self._root.shape

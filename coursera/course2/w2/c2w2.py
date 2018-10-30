@@ -4,6 +4,7 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 
 from chains.core import env
+from chains.core import metrics as m
 from chains.core.optimizers import AdamOptimizer
 from chains.core.optimizers import GradientDescentOptimizer, MomentumOptimizer
 from chains.front.model import Model
@@ -11,7 +12,7 @@ from chains.front.network import Dense, Sequence, ReLu
 from chains.front.network import SigmoidBinaryClassifier
 from chains.front.training import TrainListener, MiniBatchTraining
 from coursera.course2.w2.opt_utils import plot_decision_boundary, load_dataset
-from coursera.utils import binary_accuracy, plot_costs
+from coursera.utils import plot_costs
 
 
 # Note: To get exactly same results as in coursera exercise
@@ -38,9 +39,6 @@ class CostListener(TrainListener):
 
         if epoch % 1000 == 0:
             print(f"Cost after epoch {epoch}: {cost}")
-
-    def on_iteration(self, epoch, num_batch, i, cost):
-        pass
 
     def on_end(self):
         plot_costs(self.costs, unit=100, learning_rate=0.0007)
@@ -82,6 +80,8 @@ if __name__ == "__main__":
 
     # load image dataset: blue/red dots in circles
     train_x, train_y = load_dataset()
+    train_x = train_x.astype('float32')
+    train_y = train_y.astype('int16')
 
     m_train = train_x.shape[1]
     n = train_x.shape[0]
@@ -100,8 +100,9 @@ if __name__ == "__main__":
             listener=CostListener()
         )
 
-        model.train(train_x, train_y, epochs=10_000, training=training)
+        model.train(train_x.astype('float32'), train_y, epochs=10_000,
+                    training=training)
         train_predictions = model.predict(train_x)
-        train_accuracy = binary_accuracy(train_predictions, train_y)
+        train_accuracy = m.accuracy(train_predictions, train_y)
         print(f"Train accuracy = {train_accuracy}%")
         plot_boundary(name, model, train_x, train_y)

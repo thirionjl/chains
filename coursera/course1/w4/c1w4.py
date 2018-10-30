@@ -1,13 +1,15 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 import chains.core.node_factory
+from chains.core import metrics as m
 from chains.core import node_factory as f, env
 from chains.core.graph import Graph
 from chains.core.initializers import XavierInitializer, ZeroInitializer
 from chains.core.optimizers import GradientDescentOptimizer
 from chains.core.shape import Dim
 from coursera.course1.w4.dnn_app_utils_v3 import load_data
-from coursera.utils import binary_accuracy, plot_costs
+from coursera.utils import plot_costs
 
 ITERATION_UNIT = 100
 
@@ -21,7 +23,7 @@ class DeepNNModel:
         self.X = f.placeholder(shape=(self.n, self.m))
         self.Y = f.placeholder(shape=(1, self.m))
 
-        # Hidden todo
+        # Hidden
         a = self.X
         a_size = self.n
         for l, h in enumerate(hidden_layers_sizes):
@@ -91,6 +93,8 @@ if __name__ == "__main__":
 
     # Data  visualization
     show_image(10, classes, train_x_orig, train_y)
+    train_y = train_y.astype(np.float32)
+    test_y = test_y.astype(np.float32)
 
     # Data preparation
     m_train = train_x_orig.shape[0]
@@ -110,8 +114,8 @@ if __name__ == "__main__":
     test_x_flatten = test_x_orig.reshape(m_test, -1).T
 
     # Standardize data to have feature values between 0 and 1.
-    train_x = train_x_flatten / 255.
-    test_x = test_x_flatten / 255.
+    train_x = np.divide(train_x_flatten, 255., dtype=np.float32)
+    test_x = np.divide(test_x_flatten, 255., dtype=np.float32)
 
     print("train_x's shape: " + str(train_x.shape))
     print("test_x's shape: " + str(test_x.shape))
@@ -137,11 +141,9 @@ if __name__ == "__main__":
 
         # Predict
         train_predictions = model.predict(train_x)
-        train_accuracy = binary_accuracy(actual=train_predictions,
-                                         expected=train_y)
+        train_accuracy = m.accuracy(train_predictions, train_y)
         print(f"Train accuracy = {train_accuracy}%")
 
         test_predictions = model.predict(test_x)
-        test_accuracy = binary_accuracy(actual=test_predictions,
-                                        expected=test_y)
+        test_accuracy = m.accuracy(test_predictions, test_y)
         print(f"Test accuracy = {test_accuracy}%")

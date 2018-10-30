@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import coursera.course1.w2.lr_utils as cs
+from chains.core import metrics as m
 from chains.core import node_factory as f, initializers as init
 from chains.core import node_factory as nf
 from chains.core import optimizers as gd, graph as g
 from chains.core.shape import Dim
-from coursera.utils import binary_accuracy, plot_costs
+from coursera.utils import plot_costs
 
 ITERATIONS_UNIT = 100
 
@@ -95,13 +96,15 @@ if __name__ == "__main__":
     print("test_set_y shape: ", test_set_y.shape)
 
     # Normalize
-    train_set_x = train_set_x_flatten / 255.
-    test_set_x = test_set_x_flatten / 255
+    train_set_x = np.array(train_set_x_flatten / 255., dtype=np.float32)
+    test_set_x = np.array(test_set_x_flatten / 255, dtype=np.float32)
 
     print("=== Train ===")
     pixels = num_px * num_px * 3
     model = LogisticRegressionModel(pixels)
     lr = 0.005
+
+    train_set_y = train_set_y.astype(np.float32)
 
     start_time = time.time()
     costs = model.train(train_set_x, train_set_y, learning_rate=lr,
@@ -113,10 +116,8 @@ if __name__ == "__main__":
     # Predict
     train_predictions = model.predict(train_set_x)
     test_predictions = model.predict(test_set_x)
-    print("Train accuracy = ", binary_accuracy(train_predictions, train_set_y),
-          "%")
-    print("Test  accuracy = ", binary_accuracy(test_predictions, test_set_y),
-          "%")
+    print("Train accuracy = ", m.accuracy(train_predictions, train_set_y), "%")
+    print("Test  accuracy = ", m.accuracy(test_predictions, test_set_y), "%")
 
     # Analyze
     # Example of a picture that was wrongly classified.
@@ -129,7 +130,8 @@ if __name__ == "__main__":
     label_prediction = test_set_y[0, index]
     class_prediction = classes[int(test_predictions[0, index])].decode('utf-8')
     print(
-        f"y = {label_prediction}, you predicted that it is a {class_prediction} picture.")
+        f"y = {label_prediction}, you predicted that it is a "
+        f"{class_prediction} picture.")
 
     plt.imshow(test_set_x[:, index].reshape((num_px, num_px, 3)))
     plt.show()
