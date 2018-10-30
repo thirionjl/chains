@@ -36,6 +36,11 @@ class ZeroInitializer(VarInitializer):
         return np.zeros(shape, dtype=dtype)
 
 
+class OneInitializer(VarInitializer):
+    def initialize(self, shape, dtype):
+        return np.ones(shape, dtype=dtype)
+
+
 class RandomNormalInitializer(VarInitializer):
 
     def __init__(self, scale: float = 0.01):

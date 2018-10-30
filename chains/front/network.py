@@ -1,4 +1,5 @@
 import abc
+from typing import Dict
 
 import chains.core.node_factory
 from chains.core import node_factory as f, initializers as init
@@ -33,11 +34,23 @@ class Network(abc.ABC):
                                         self.labels: y_train}
 
 
+class _VarNameGenerator:
+
+    def __init__(self):
+        self._max_id_per_type: Dict[str, int] = dict()
+
+    def generate(self, category: str) -> str:
+        seq = self._max_id_per_type.get(category, 0)
+        self._max_id_per_type[category] = seq + 1
+        return f"{category}:{seq}"
+
+
 class Sequence(Network):
 
     def __init__(self, cnt_features: int, layers, classifier,
                  regularizer=None):
         super().__init__()
+        name_generator = _VarNameGenerator()
         self.cnt_features = Dim.of(cnt_features)
         self.cnt_samples = Dim.unknown()
         self.inputs = f.placeholder(
@@ -47,7 +60,7 @@ class Sequence(Network):
             self.inputs, self.inputs, []
         for pos, layer in enumerate(layers):
             cost_graph, predict_graph, vars = layer.augment(pos,
-                                                            self.cnt_samples,
+                                                            name_generator,
                                                             cost_graph,
                                                             predict_graph)
             regularizable_vars.extend(vars)
@@ -76,7 +89,8 @@ class SequenceElement(abc.ABC):
         self.regularizable_vars = []
 
     @abc.abstractmethod
-    def augment(self, pos: int, dim_features: Dim, logits: Node, labels: Node):
+    def augment(self, pos: int, name_generator: _VarNameGenerator,
+                logits: Node, labels: Node):
         pass
 
 
@@ -92,13 +106,12 @@ class Dense(SequenceElement):
         self.bias_initializer = self.default_bias_initializer \
             if bias_initializer is None else bias_initializer
 
-    def augment(self, pos: int, dim_features: Dim, cost_g: Node,
-                predict_g: Node):
+    def augment(self, pos, name_generator, cost_g, predict_g):
         # TODO Allow different axis for the "features" and "examples" dimension
-        cnt_features = dim_features.value
-        w = f.var("W" + str(pos + 1), self.weight_initializer,
+        cnt_features = cost_g.shape[0]
+        w = f.var(name_generator.generate("W"), self.weight_initializer,
                   shape=(self.neurons, cnt_features))
-        b = f.var("b" + str(pos + 1), self.bias_initializer,
+        b = f.var(name_generator.generate("b"), self.bias_initializer,
                   shape=(self.neurons, 1))
         cost_fc = f.fully_connected(cost_g, w, b, first_layer=(pos == 0))
         predict_fc = f.fully_connected(predict_g, w, b, first_layer=(pos == 0))
@@ -107,15 +120,13 @@ class Dense(SequenceElement):
 
 class ReLu(SequenceElement):
 
-    def augment(self, pos: int, dim_features: Dim, cost_graph: Node,
-                predict_graph: Node):
+    def augment(self, pos, name_generator, cost_graph, predict_graph):
         return f.relu(cost_graph), f.relu(predict_graph), []
 
 
 class LeakyReLu(SequenceElement):
 
-    def augment(self, pos: int, dim_features: Dim, cost_graph: Node,
-                predict_graph: Node):
+    def augment(self, pos, name_generator, cost_graph, predict_graph):
         return f.leaky_relu(cost_graph), f.leaky_relu(predict_graph), []
 
 
@@ -125,24 +136,31 @@ class Dropout(SequenceElement):
             raise ValueError(f"Keep probability should be between 0 and 1")
         self.keep_prob = keep_prob
 
-    def augment(self, pos: int, dim_features: Dim, cost_graph: Node,
-                predict_graph: Node):
+    def augment(self, pos, name_generator, cost_graph, predict_graph):
         return chains.core.node_factory.dropout(self.keep_prob,
                                                 cost_graph), predict_graph, []
 
 
 class BatchNorm(SequenceElement):
+    default_beta_initializer = init.ZeroInitializer()
+    default_gamma_initializer = init.OneInitializer()
 
-    def augment(self, pos: int, dim_features: Dim, cost_graph: Node,
-                predict_graph: Node):
-        cnt_features = dim_features.value
-        beta = f.var("Beta" + str(pos + 1), self.weight_initializer,
+    def __init__(self, beta_initializer=None,
+                 gamma_initializer=None):
+        self.beta_initializer = self.default_beta_initializer \
+            if beta_initializer is None else beta_initializer
+        self.gamma_initializer = self.default_gamma_initializer \
+            if gamma_initializer is None else gamma_initializer
+
+    def augment(self, pos, name_generator, cost_graph, predict_graph):
+        cnt_features = cost_graph.shape[0]
+        beta = f.var(name_generator.generate("Beta"), self.beta_initializer,
                      shape=(cnt_features, 1))
-        gamma = f.var("Gamma" + str(pos + 1), self.bias_initializer,
+        gamma = f.var(name_generator.generate("Gamma"), self.gamma_initializer,
                       shape=(cnt_features, 1))
 
         bnt = f.batch_norm_train(cost_graph, beta, gamma)
-        bnp = f.batch_norm_predict(bnt, predict_graph, beta, gamma)
+        bnp = f.batch_norm_predict(bnt._op, predict_graph, beta, gamma)
 
         return bnt, bnp, [beta, gamma]
 
