@@ -23,7 +23,7 @@ class Optimizer(abc.ABC):
         self._variables = None
         self.multiplier = 1
 
-    def initialize_and_check(self, graph: Graph):
+    def prepare_and_check(self, graph: Graph):
         validate.is_a("graph", graph, Graph)
         if not graph.shape.is_scalar():
             raise ValueError(f"Optimizers accept only graphs that output a "
@@ -64,8 +64,8 @@ class MomentumOptimizer(Optimizer):
         self.beta = beta
         self.v = {}  # velocities
 
-    def initialize_and_check(self, graph: Graph):
-        super().initialize_and_check(graph)
+    def prepare_and_check(self, graph: Graph):
+        super().prepare_and_check(graph)
         _initialize_zeros(graph, self.v)
 
     def apply_single_gradient(self, var, grad):
@@ -90,8 +90,8 @@ class AdamOptimizer(Optimizer):
         self.s = {}  # squared velocities
         self.t = 0
 
-    def initialize_and_check(self, graph: Graph):
-        super().initialize_and_check(graph)
+    def prepare_and_check(self, graph: Graph):
+        super().prepare_and_check(graph)
         _initialize_zeros(graph, self.v)
         _initialize_zeros(graph, self.s)
 

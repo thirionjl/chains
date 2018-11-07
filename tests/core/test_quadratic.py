@@ -25,7 +25,7 @@ def test_quadratic():
     }
     cost.initialize_variables()
     optimizer = gd.GradientDescentOptimizer(0.1)
-    optimizer.initialize_and_check(cost)
+    optimizer.prepare_and_check(cost)
 
     for i in range(500):
         optimizer.run()

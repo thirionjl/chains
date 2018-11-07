@@ -37,7 +37,7 @@ class DummyOptimizer(Optimizer):
     def __init__(self, cost):
         self.cost = cost
 
-    def initialize_and_check(self, graph: Graph):
+    def prepare_and_check(self, graph: Graph):
         pass
 
     def run(self):

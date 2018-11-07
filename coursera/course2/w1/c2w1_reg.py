@@ -85,7 +85,7 @@ class NNModel:
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
         optimizer = gd.GradientDescentOptimizer(learning_rate)
-        optimizer.initialize_and_check(self.cost_graph)
+        optimizer.prepare_and_check(self.cost_graph)
         costs = []
         for i in range(num_iterations):
             env.seed(1)

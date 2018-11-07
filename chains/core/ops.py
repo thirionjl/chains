@@ -95,9 +95,11 @@ class Var(_NoOp):
 
         self.initializer = initializer
 
-    def initialize(self):
-        self.output = self.initializer.initialize(self.shape.to_numpy(),
-                                                  self.dtype)
+    def initialize_if_needed(self):
+        if self.output is None:
+            self.output = self.initializer.initialize(self.shape.to_numpy(),
+                                                      self.dtype)
+
         self.check()
 
 

@@ -81,7 +81,7 @@ class MiniBatchTraining(Training):
     def _train_init(self, cost_graph, feed_method, x_train, y_train):
         cost_graph.initialize_variables()
         feed_method(x_train, y_train)
-        self.optimizer.initialize_and_check(cost_graph)
+        self.optimizer.prepare_and_check(cost_graph)
 
     def _train_epoch(self, epoch, batch_slices, feed_method,
                      x, y, cnt_samples):
@@ -158,4 +158,4 @@ class BatchTraining(Training):
     def _train_init(self, cost_graph, feed_method, x_train, y_train):
         cost_graph.initialize_variables()
         feed_method(x_train, y_train)
-        self.optimizer.initialize_and_check(cost_graph)
+        self.optimizer.prepare_and_check(cost_graph)
