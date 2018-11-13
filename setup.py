@@ -11,13 +11,13 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['numpy', 'daz']
+requirements = ['numpy', 'daz', 'h5py']
 
 setup_requirements = ['pytest-runner', ]
 
 test_requirements = ['pytest', 'tensorflow']
 
-coursera_requirements = ['h5py', 'matplotlib', 'scipy', 'Pillow', 'scikit-learn']
+coursera_requirements = ['matplotlib', 'scipy', 'Pillow', 'scikit-learn']
 
 setup(
     author="Jean-Luc Thirion",
