@@ -42,12 +42,12 @@ def var(name: str, initializer: VarInitializer, shape, dtype=np.float32):
                     dtype=dtype), name=name)
 
 
-def placeholder(shape, dtype=np.float32):
-    return Node(Placeholder(shape, dtype))
+def placeholder(shape, dtype=np.float32, name=None):
+    return Node(Placeholder(shape, dtype), name=name)
 
 
-def constant(value, dtype=np.float32):
-    return Node(Constant(value, dtype))
+def constant(value, dtype=np.float32, name=None):
+    return Node(Constant(value, dtype), name=name)
 
 
 def add(left: Node, right: Node):
@@ -70,106 +70,108 @@ def neg(value: Node):
     return -value
 
 
-def mat_mul(left: Node, right: Node):
-    return Node(MatMul(), [left, right])
+def mat_mul(left: Node, right: Node, name=None):
+    return Node(MatMul(), [left, right], name=name)
 
 
-def mat_max(left: Node):
-    return Node(MaxComponent(), [left])
+def mat_max(left: Node, name=None):
+    return Node(MaxComponent(), [left], name=name)
 
 
-def mat_sum(left: Node):
-    return Node(SumComponents(), [left])
+def mat_sum(left: Node, name=None):
+    return Node(SumComponents(), [left], name=name)
 
 
-def mat_avg(left: Node):
-    return Node(AvgComponents(), [left])
+def mat_avg(left: Node, name=None):
+    return Node(AvgComponents(), [left], name=name)
 
 
-def transpose(left: Node):
-    return Node(Transpose(), [left])
+def transpose(left: Node, name=None):
+    return Node(Transpose(), [left], name=name)
 
 
-def reshape(shape: StaticShape, left: Node):
-    return Node(Reshape(shape), [left])
+def reshape(shape: StaticShape, left: Node, name=None):
+    return Node(Reshape(shape), [left], name=name)
 
 
-def as_scalar(left: Node):
-    return Node(AsScalar(), [left])
+def as_scalar(left: Node, name=None):
+    return Node(AsScalar(), [left], name=name)
 
 
-def softmax_cross_entropy(logits: Node, labels: Node):
-    return Node(SoftMaxCrossEntropy(), [logits, labels])
+def softmax_cross_entropy(logits: Node, labels: Node, name=None):
+    return Node(SoftMaxCrossEntropy(), [logits, labels], name=name)
 
 
-def sigmoid_cross_entropy(logits: Node, labels: Node):
-    return Node(SigmoidCrossEntropy(), [logits, labels])
+def sigmoid_cross_entropy(logits: Node, labels: Node, name=None):
+    return Node(SigmoidCrossEntropy(), [logits, labels], name=name)
 
 
-def sigmoid(logits: Node):
-    return Node(Sigmoid(), [logits])
+def sigmoid(logits: Node, name=None):
+    return Node(Sigmoid(), [logits], name=name)
 
 
-def softmax(logits: Node):
-    return Node(SoftMax(), [logits])
+def softmax(logits: Node, name=None):
+    return Node(SoftMax(), [logits], name=name)
 
 
-def is_greater_than(logits: Node, threshold: float):
-    return Node(IsGreaterThan(threshold), [logits])
+def is_greater_than(logits: Node, threshold: float, name=None):
+    return Node(IsGreaterThan(threshold), [logits], name=name)
 
 
-def argmax(logits: Node, axis=0):
-    return Node(ArgMax(axis), [logits])
+def argmax(logits: Node, axis=0, name=None):
+    return Node(ArgMax(axis), [logits], name=name)
 
 
-def tanh(logits: Node):
-    return Node(TanH(), [logits])
+def tanh(logits: Node, name=None):
+    return Node(TanH(), [logits], name=name)
 
 
-def relu(logits: Node):
-    return Node(ReLu(), [logits])
+def relu(logits: Node, name=None):
+    return Node(ReLu(), [logits], name=name)
 
 
-def leaky_relu(logits: Node):
-    return Node(LeakyReLu(), [logits])
+def leaky_relu(logits: Node, name=None):
+    return Node(LeakyReLu(), [logits], name=name)
 
 
-def dim(logits: Node, axis: int = -1):
-    return Node(DimOp(axis), [logits])
+def dim(logits: Node, axis: int = -1, name=None):
+    return Node(DimOp(axis), [logits], name=name)
 
 
-def l2_norm_regularizer(lambd, batch_size, weight_matrices_array):
+def l2_norm_regularizer(lambd, batch_size, weight_matrices_array, name=None):
     if isinstance(batch_size, int):
         batch_size_node = Node(Constant(batch_size))
     elif isinstance(batch_size, Node):
         batch_size_node = batch_size
     return Node(L2NormRegularization(lambd=lambd),
-                incoming_nodes=[batch_size_node] + weight_matrices_array)
+                incoming_nodes=[batch_size_node] + weight_matrices_array,
+                name=name)
 
 
-def dropout(keep_prob, logits: Node):
+def dropout(keep_prob, logits: Node, name=None):
     return Node(Dropout(keep_prob), [logits])
 
 
 def fully_connected(inputs: Node, weights: Node, bias: Node,
-                    *, first_layer=False) -> Node:
-    return Node(FullyConnected(not first_layer), [inputs, weights, bias])
+                    *, first_layer=False, name=None) -> Node:
+    return Node(FullyConnected(not first_layer), [inputs, weights, bias],
+                name=name)
 
 
 def batch_norm_train(inputs: Node, beta: Node, gamma: Node, momentum=0.99,
-                     epsilon=1e-3, sample_axis=-1) -> Node:
+                     epsilon=1e-3, sample_axis=-1, name=None) -> Node:
     bn = BatchNormTraining(momentum, epsilon, sample_axis)
-    return Node(bn, [beta, gamma, inputs])
+    return Node(bn, [beta, gamma, inputs], name=name)
 
 
 def batch_norm_predict(batch_norm: Node, inputs: Node, beta: Node,
-                       gamma: Node) -> Node:
+                       gamma: Node, name=None) -> Node:
     bn = BatchNormPredict.from_training(batch_norm)
-    return Node(bn, [beta, gamma, inputs])
+    return Node(bn, [beta, gamma, inputs], name=name)
 
 
 def batch_norm_predict_fixed(mean: Tensor, variance: Tensor, inputs: Node,
                              beta: Node,
-                             gamma: Node) -> Node:
+                             gamma: Node, name=None) -> Node:
     bn = BatchNormPredict.from_fixed_values(mean, variance)
-    return Node(bn, [beta, gamma, inputs])
+    return Node(bn, [beta, gamma, inputs], name=name)
