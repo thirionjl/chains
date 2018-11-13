@@ -125,6 +125,20 @@ class BatchNormPredict(Op):
         else:
             return self.predefined_var
 
+    @avg.setter
+    def avg(self, value):
+        if self.train_op is not None:
+            self.train_op.avg = value
+        else:
+            self.predefined_avg = value
+
+    @var.setter
+    def var(self, value):
+        if self.train_op is not None:
+            self.train_op.var = value
+        else:
+            self.predefined_var = value
+
     @property
     def epsilon(self):
         if self.train_op is not None:

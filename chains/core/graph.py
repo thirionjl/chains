@@ -1,8 +1,11 @@
+import warnings
 from collections import deque, defaultdict
+from operator import attrgetter
 from typing import Dict, Set
 
 import numpy as np
 
+from chains.utils.naming import NameGenerator
 from .ops import Var, Constant, Placeholder, Op
 from .ops_arithmetic import Negate, Pow, Add, ConstMul, Mul
 from .ops_mat import Transpose, MatMul
@@ -11,20 +14,9 @@ from .tensor import is_tensor, Tensor
 __all__ = ["Node", "Graph"]
 
 
-class _NameGenerator:
-
-    def __init__(self):
-        self._max_id_per_type: Dict[str, int] = dict()
-
-    def generate(self, category: str) -> str:
-        seq = self._max_id_per_type.get(category, 0)
-        self._max_id_per_type[category] = seq + 1
-        return f"{category}:{seq}"
-
-
 class Node:
-    _name_generator = _NameGenerator()
     _all_node_names: Set[str] = set()
+    _name_generator = NameGenerator()
 
     def __init__(self, op: Op, incoming_nodes=[], name: str = None):
         incoming_shapes = tuple(n.shape for n in incoming_nodes)
@@ -32,7 +24,7 @@ class Node:
         op.check_incoming_shapes(*incoming_shapes)
         self.shape = op.compute_out_shape(*incoming_shapes)
         self.dtype = np.dtype(op.compute_out_dtype(*incoming_dtypes))
-        self._op = op
+        self.op = op
         self._op_type = self._op_type(op)
         self._name = Node._name(op, name)
         self.incoming_nodes = tuple(incoming_nodes)
@@ -54,7 +46,7 @@ class Node:
     @classmethod
     def _unique_name(cls, name: str) -> bool:
         if name in cls._all_node_names:
-            raise ValueError(f"Node name {name} is already used")
+            warnings.warn(f"Node name {name} is already used")
         return name
 
     def __str__(self):
@@ -137,10 +129,10 @@ class Node:
 
     def compute(self):
         args = map(lambda n: n.value, self.incoming_nodes)
-        self._op.compute(*args)
+        self.op.compute(*args)
 
     def compute_partial_derivatives(self, out_derivative):
-        return self._op.partials(out_derivative)
+        return self.op.partials(out_derivative)
 
     @property
     def name(self):
@@ -148,24 +140,24 @@ class Node:
 
     @property
     def value(self):
-        return self._op.output
+        return self.op.output
 
     @value.setter
     def value(self, value):
         # On critical path: do not add to much checks here
-        self._op.output = value
+        self.op.output = value
 
     def check_is_set(self):
-        return self._op.check()
+        return self.op.check()
 
     def is_var(self):
-        return isinstance(self._op, Var)
+        return isinstance(self.op, Var)
 
     def is_constant(self):
-        return isinstance(self._op, Constant)
+        return isinstance(self.op, Constant)
 
     def is_placeholder(self):
-        return isinstance(self._op, Placeholder)
+        return isinstance(self.op, Placeholder)
 
     def is_assignable(self):
         return self.is_var() or self.is_placeholder()
@@ -174,9 +166,9 @@ class Node:
         return not (
             self.is_var() or self.is_placeholder() or self.is_constant())
 
-    def initialize(self):
+    def initialize_if_needed(self):
         if self.is_var():
-            self._op.initialize()
+            self.op.initialize_if_needed()
         else:
             raise ValueError(
                 f"Node {self} is not a variable and could not be initialized")
@@ -187,6 +179,8 @@ class Graph:
     def __init__(self, r):
         self._root = r
         self._forward_path = self._forward_prop_path(r)
+        self.all_nodes = sorted(self._forward_path, key=attrgetter('name'))
+        self._verify_unique_names(self.all_nodes)
         self.variables = {n for n in self._forward_path if n.is_var()}
         self._placeholders = {n for n in self._forward_path if
                               n.is_placeholder()}
@@ -203,6 +197,15 @@ class Graph:
                                                    lambda n: n.out_nodes)
         return [n for n in var_dependencies if
                 n in fw_path and n.is_computation()]
+
+    @staticmethod
+    def _verify_unique_names(nodes):
+        used_names = set()
+        for n in nodes:
+            if n.name in used_names:
+                raise ValueError(
+                    f"Node name {n.name} is used multiple times in same graph")
+            used_names.add(n.name)
 
     @staticmethod
     def _topological_sort(roots, children_fct):
@@ -270,7 +273,7 @@ class Graph:
         # Sort initializations so that it is deterministic in
         # case of random initializers
         for v in sorted(self.variables, key=lambda n: n.name):
-            v.initialize()
+            v.initialize_if_needed()
 
     @property
     def shape(self):

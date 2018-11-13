@@ -48,7 +48,7 @@ def test_momentum_coursera():
     g.initialize_variables()
 
     optimizer = MomentumOptimizer(lr=0.01, beta=0.9)
-    optimizer.initialize_and_check(g)
+    optimizer.prepare_and_check(g)
 
     optimizer.run()
 
@@ -89,7 +89,7 @@ def test_adam_coursera():
     g.initialize_variables()
 
     optimizer = AdamOptimizer(lr=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8)
-    optimizer.initialize_and_check(g)
+    optimizer.prepare_and_check(g)
 
     # Simulate second mini-batch as in coursera test case
     optimizer.t = 1
