@@ -149,7 +149,7 @@ def l2_norm_regularizer(lambd, batch_size, weight_matrices_array, name=None):
 
 
 def dropout(keep_prob, logits: Node, name=None):
-    return Node(Dropout(keep_prob), [logits])
+    return Node(Dropout(keep_prob), [logits], name=name)
 
 
 def fully_connected(inputs: Node, weights: Node, bias: Node,

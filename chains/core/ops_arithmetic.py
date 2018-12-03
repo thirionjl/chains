@@ -1,3 +1,4 @@
+"""Common arithmetic operations"""
 import numpy as np
 
 from chains.utils import validate
@@ -53,6 +54,7 @@ class Mul(ElementWiseBinaryOp):
 
 
 class Pow(ElementWiseUnaryOp):
+    """Exponentiation by an integer"""
 
     def __init__(self, exponent: int):
         validate.is_integer_dtype(int)
@@ -70,6 +72,9 @@ class Pow(ElementWiseUnaryOp):
 
 
 class IsGreaterThan(ElementWiseUnaryOp):
+    """Returns a boolean indicating if the input is greater that some output.
+    Note: Input derivatives are not computed.
+    """
 
     def __init__(self, threshold: float):
         self.threshold = threshold

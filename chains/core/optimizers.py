@@ -13,7 +13,6 @@ __all__ = ["Optimizer", "GradientDescentOptimizer", "MomentumOptimizer",
            "AdamOptimizer"]
 
 
-# TODO Get back learning rate finder...
 class Optimizer(abc.ABC):
 
     def __init__(self, learning_rate: float):
