@@ -55,7 +55,7 @@ class Dropout(ElementWiseUnaryOp):
 
     def __init__(self, keep_prob):
         if type(keep_prob) != float or not (0 < keep_prob <= 1):
-            raise ValueError(f"Drop-out keep probability should be a float "
+            raise ValueError(f"Dropout keep probability should be a float "
                              f"between 0 and 1, got {keep_prob}")
         self.keep_prob = keep_prob
         self.mask = None
