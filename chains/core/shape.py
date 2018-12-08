@@ -1,4 +1,5 @@
 from itertools import zip_longest
+from typing import Union, Iterable
 
 import numpy as np
 
@@ -96,6 +97,22 @@ class StaticShape(tuple):
     def is_broadcast_compatible(self, other):
         return all(m.is_broadcast_compatible(n) for m, n in
                    self.zip_dimensions(self, other))
+
+    def reduce_along_axis(self, axis: Union[Iterable[int], int],
+                          keep_dims=False):
+        ax_tuple = (axis,) if isinstance(axis, int) else axis
+
+        squeezed = [True] * len(self)
+        for ax in ax_tuple:
+            self.check_axis_index(ax)
+            squeezed[ax] = False
+
+        if keep_dims:
+            return StaticShape.from_tuple(
+                (d if keep else 1) for d, keep in zip(self, squeezed))
+        else:
+            return StaticShape.from_tuple(
+                d for d, keep in zip(self, squeezed) if keep)
 
     @staticmethod
     def zip_dimensions(a, b):

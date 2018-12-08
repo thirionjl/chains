@@ -76,7 +76,8 @@ class SoftMaxCrossEntropyWithLogits(BinaryOp):
                              f"shape, got {x} and {y}")
 
     def compute_out_shape(self, x: StaticShape, y: StaticShape) -> StaticShape:
-        return StaticShape.from_tuple(x[:-1])
+        return x.reduce_along_axis(axis=self.class_axis,
+                                   keep_dims=self.keepdims)
 
 
 class SoftMaxCrossEntropy(SoftMaxCrossEntropyWithLogits):
