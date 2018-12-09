@@ -3,7 +3,7 @@ from ..fc import layer as fcl
 
 
 # TODO Layer factories
-def forward(X, F, b, stride=1):
+def forward(X, F, b, padding=0, stride=1):
     XC = fu.im2col_activations(X, F, stride)
     FC = fu.im2col_filters(X, F)
     ZC = fcl.forward(XC, FC, b)
@@ -11,7 +11,7 @@ def forward(X, F, b, stride=1):
 
 
 def backward(dZ, X, XC, F, FC, b, stride=1):
-    m, c, nh, nw, d, fh, fw = fu.all_dimensions(X, F)
+    m, c, nh, nw, d, fh, fw = fu._all_dimensions(X, F)
     mm, dd, cnt_h, cnt_w = dZ.shape
     if mm != m:
         raise ValueError(
@@ -26,5 +26,5 @@ def backward(dZ, X, XC, F, FC, b, stride=1):
     dZC = dZ.transpose(0, 1, 2, 3).reshape(d, m * cnt_h * cnt_w)
     (dXC, dFC, db) = fcl.backward(dZC, XC, FC, b)
     dF = dFC.reshape(c, c, fh, fw)
-    dX = fu.im2col_activations_back(dXC, X, F, stride)
+    dX = fu.col2im_activations(dXC, X, F, stride)
     return dX, dF, db

@@ -7,12 +7,12 @@ import chains.todo.conv.filter_utils as fu
 def test_all_dimensions_without_error():
     X = np.zeros((32, 3, 500, 400))
     F = np.zeros((5, 3, 12, 10))
-    assert fu.all_dimensions(X, F) == (32, 3, 500, 400, 5, 12, 10)
+    assert fu._all_dimensions(X, F) == (32, 3, 500, 400, 5, 12, 10)
 
 
 def test_all_dimensions_with_non_matching_channels():
     with pytest.raises(ValueError) as ex:
-        fu.all_dimensions(np.zeros((32, 4, 500, 400)), np.zeros((5, 3, 12, 10)))
+        fu._all_dimensions(np.zeros((32, 4, 500, 400)), np.zeros((5, 3, 12, 10)))
     assert str(ex.value) == 'Number of channels should be the same in activations(4) and filters(3)'
 
 
@@ -53,7 +53,7 @@ def test_im2col_back():
         [[9, 31, 22], [44, 114, 70], [35, 83, 48]]
     ])
     X_back_expected = np.stack([X1, -X1])
-    np.testing.assert_array_equal(X_back_expected, fu.im2col_activations_back(XC, X, F))
+    np.testing.assert_array_equal(X_back_expected, fu.col2im_activations(XC, X, F))
 
 
 def test_reshape_out():
@@ -80,5 +80,5 @@ def test_im2col_filter_back_and_forth():
     X = np.random.randint(1, 10, (2, 3, 3, 3))
     F = np.random.randint(1, 10, (2, 3, 2, 2))
     FC = fu.im2col_filters(X, F)
-    F_back = fu.im2col_filters_back(FC, X, F)
+    F_back = fu.col2im_filters(FC, X, F)
     np.testing.assert_array_equal(F, F_back)

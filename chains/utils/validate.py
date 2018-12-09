@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Tuple
 
 import numpy as np
 
@@ -62,3 +62,8 @@ def _can_be_cast_to(dtype, super_type, name):
     if not np.can_cast(dtype, super_type):
         raise TypeError(f"Parameter {name} should be convertible "
                         f"to {super_type}")
+
+
+def is_permutation(perm: Tuple[int]):
+    if perm[np.argsort(perm)] != np.arange(len(perm)):
+        raise ValueError(f"{perm} is not a valid permutation tuple")
