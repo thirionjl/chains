@@ -64,6 +64,7 @@ def _can_be_cast_to(dtype, super_type, name):
                         f"to {super_type}")
 
 
-def is_permutation(perm: Tuple[int]):
-    if perm[np.argsort(perm)] != np.arange(len(perm)):
-        raise ValueError(f"{perm} is not a valid permutation tuple")
+def is_permutation(perm: Tuple[int], length):
+    identity = range(length)
+    if set(perm) != set(identity):
+        raise ValueError(f"{perm} is not a permutation tuple of {identity}")

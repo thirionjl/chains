@@ -3,6 +3,7 @@ from typing import Union, Iterable
 
 import numpy as np
 
+from chains.utils import validate
 from .tensor import Tensor
 
 __all__ = ["Dim", "StaticShape"]
@@ -168,3 +169,8 @@ class StaticShape(tuple):
         if axis < 0 and not (-self.ndim <= axis < 0):
             raise ValueError(f"axis is out of bounds of shape {self} "
                              f"got {axis}")
+
+    def transpose(self, *args):
+        perm = args[0] if len(args) == 1 else tuple(args)
+        validate.is_permutation(perm, len(self))
+        return StaticShape(*(self[perm[i]] for i in range(len(perm))))

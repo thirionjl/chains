@@ -1,4 +1,4 @@
-import abc
+from typing import Iterable, Union
 
 import numpy as np
 
@@ -10,38 +10,33 @@ from chains.utils import validate
 __all__ = ["Conv2D"]
 
 
-class ConvFormat(abc.ABC):
-    def __init__(self, features_perm, filters_perm):
-        validate.is_permutation(features_perm)
-        validate.is_permutation(filters_perm)
+class ConvFormat:
+    Transposable = Union[Tensor, StaticShape]
+    Perm = Iterable[int]
+
+    def __init__(self, features_perm: Perm, filters_perm: Perm):
+        validate.is_permutation(features_perm, 4)
+        validate.is_permutation(filters_perm, 4)
         self.features_perm = features_perm
         self.filters_perm = filters_perm
 
-    def nchw(self, a: StaticShape):
-        return self.apply_perm(a, self.features_perm)
+    def nchw(self, a: Transposable) -> Transposable:
+        return a.transpose(self.features_perm)
 
-    def dchw(self, f: StaticShape):
-        return self.apply_perm(f, self.filters_perm)
+    def nchw_inv(self, a: Transposable) -> Transposable:
+        return a.transpose(self._inverse_feature_perm())
 
-    def nchw_inv(self, a: StaticShape):
-        return self.apply_perm(a, self.inverse_perm(self.features_perm))
+    def dchw(self, f: Transposable) -> Transposable:
+        return f.transpose(self.filters_perm)
 
-    def dchw_inv(self, f: StaticShape):
-        return self.apply_perm(f, self.inverse_perm(self.filters_perm))
+    def dchw_inv(self, f: Transposable) -> Transposable:
+        return f.transpose(self._inverse_filter_perm())
 
-    def to_nchw(self, features):
-        return features.transpose(self.features_perm)
+    def _inverse_filter_perm(self: Perm) -> Perm:
+        return self.inverse_perm(self.filters_perm)
 
-    def to_dchw(self, filters):
-        return filters.transpose(self.filters_perm)
-
-    def undo_to_nchw(self, nchw_features):
-        perm = self.inverse_perm(self.features_perm)
-        return nchw_features.transpose(perm)
-
-    def undo_to_dchw(self, dchw_filters):
-        perm = self.inverse_perm(self.filters_perm)
-        return dchw_filters.transpose(perm)
+    def _inverse_feature_perm(self: Perm) -> Perm:
+        return self.inverse_perm(self.features_perm)
 
     @staticmethod
     def inverse_perm(perm):
@@ -52,55 +47,14 @@ class ConvFormat(abc.ABC):
         return tuple(f[perm[i]] for i in range(len(perm)))
 
 
-class NCHW(ConvFormat):
-    def to_nchw(self, features):
-        return features
+NCHW = ConvFormat((0, 1, 2, 3), (0, 1, 2, 3))
+CHWN = ConvFormat((3, 0, 1, 2), (0, 1, 2, 3))
 
-    def to_dchw(self, filters):
-        return filters
-
-    def undo_to_nchw(self, nchw_features):
-        return nchw_features
-
-    def undo_to_dchw(self, dchw_filters):
-        return dchw_filters
-
-
-class CHWN(ConvFormat):
-    def __init__(self):
-        super().__init__((3, 0, 1, 2), (0, 1, 2, 3))
-
-
-# def forward(X, F, b, padding=0, stride=1):
-#     XC = fu.im2col_activations(X, F, stride)
-#     FC = fu.im2col_filters(X, F)
-#     ZC = fcl.forward(XC, FC, b)
-#     return fu.reshape_out(ZC, X, F, stride), XC, FC, ZC
-#
-#
-# def backward(dZ, X, XC, F, FC, b, stride=1):
-#     m, c, nh, nw, d, fh, fw = fu._all_dimensions(X, F)
-#     mm, dd, cnt_h, cnt_w = dZ.shape
-#     if mm != m:
-#         raise ValueError(
-#             f"Number of examples im activations({m}) is different from number "
-#             f"of examples in output derivatives({mm})")
-#
-#     if dd != d:
-#         raise ValueError(
-#             f"Number of filters in input({d}) is different from number of "
-#             f"filters in output derivatives({dd})")
-#
-#     dZC = dZ.transpose(0, 1, 2, 3).reshape(d, m * cnt_h * cnt_w)
-#     (dXC, dFC, db) = fcl.backward(dZC, XC, FC, b)
-#     dF = dFC.reshape(c, c, fh, fw)
-#     dX = fu.col2im_activations(dXC, X, F, stride)
-#     return dX, dF, db
 
 class Conv2D(Op):
 
     def __init__(self, feature_derivative=True, padding=0, stride=1,
-                 conv_format=ConvFormat):
+                 conv_format=NCHW):
         super().__init__()
         self.feature_derivative = feature_derivative
         self.conv_format = conv_format
@@ -142,10 +96,11 @@ class Conv2D(Op):
 
         d, c, fh, fw = self.conv_format.dchw(filters)
         m, s, nh, nw = self.conv_format.nchw(features)
-        out_h, out_w = _clip_positions_count(nh, nw, fh, fw, self.padding,
+        out_h, out_w = _clip_positions_count(nh.value, nw.value, fh.value,
+                                             fw.value, self.padding,
                                              self.stride)
 
-        tup = self.conv_format.nchw(m, d, out_h, out_w)
+        tup = self.conv_format.nchw_inv(StaticShape(m, d, out_h, out_w))
         return StaticShape.from_tuple(tup)
 
     def compute(self, features: Tensor, filters: Tensor, bias: Tensor):

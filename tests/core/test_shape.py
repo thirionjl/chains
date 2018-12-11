@@ -64,21 +64,30 @@ def test_shape_is_assignable_to():
 
 def test_reduce_along_axis():
     m = Dim.unknown()
-    shape1 = StaticShape(2, 3, m, 5)
+    shape = StaticShape(2, 3, m, 5)
 
-    assert shape1.reduce_along_axis(axis=0) == StaticShape(3, m, 5)
-    assert shape1.reduce_along_axis(axis=-1) == StaticShape(2, 3, m)
-    assert shape1.reduce_along_axis(axis=[0, 1]) == StaticShape(m, 5)
-    assert shape1.reduce_along_axis(axis=[-1, -1, 1]) == StaticShape(2, m)
-    assert shape1.reduce_along_axis(axis=[-1, -2]) == StaticShape(2, 3)
+    assert shape.reduce_along_axis(axis=0) == StaticShape(3, m, 5)
+    assert shape.reduce_along_axis(axis=-1) == StaticShape(2, 3, m)
+    assert shape.reduce_along_axis(axis=[0, 1]) == StaticShape(m, 5)
+    assert shape.reduce_along_axis(axis=[-1, -1, 1]) == StaticShape(2, m)
+    assert shape.reduce_along_axis(axis=[-1, -2]) == StaticShape(2, 3)
 
-    assert shape1.reduce_along_axis(axis=0,
-                                    keep_dims=True) == StaticShape(1, 3, m, 5)
-    assert shape1.reduce_along_axis(axis=-1,
-                                    keep_dims=True) == StaticShape(2, 3, m, 1)
-    assert shape1.reduce_along_axis(axis=[0, 1],
-                                    keep_dims=True) == StaticShape(1, 1, m, 5)
-    assert shape1.reduce_along_axis(axis=[-1, -1, 1],
-                                    keep_dims=True) == StaticShape(2, 1, m, 1)
-    assert shape1.reduce_along_axis(axis=[-1, -2],
-                                    keep_dims=True) == StaticShape(2, 3, 1, 1)
+    assert shape.reduce_along_axis(axis=0,
+                                   keep_dims=True) == StaticShape(1, 3, m, 5)
+    assert shape.reduce_along_axis(axis=-1,
+                                   keep_dims=True) == StaticShape(2, 3, m, 1)
+    assert shape.reduce_along_axis(axis=[0, 1],
+                                   keep_dims=True) == StaticShape(1, 1, m, 5)
+    assert shape.reduce_along_axis(axis=[-1, -1, 1],
+                                   keep_dims=True) == StaticShape(2, 1, m, 1)
+    assert shape.reduce_along_axis(axis=[-1, -2],
+                                   keep_dims=True) == StaticShape(2, 3, 1, 1)
+
+
+def test_transpose():
+    m = Dim.unknown()
+    shape = StaticShape(2, 3, m)
+
+    assert shape.transpose((1, 0, 2)) == StaticShape(3, 2, m)
+    assert shape.transpose(1, 0, 2) == StaticShape(3, 2, m)
+    assert shape.transpose(2, 1, 0) == StaticShape(m, 3, 2)
