@@ -1,8 +1,8 @@
 from typing import Mapping, Any
 
-from chains.core.ops import Op, Var
-from chains.core.ops_norm import BatchNormPredict, BatchNormTraining
-from chains.core.tensor import Tensor
+from .ops import Op, Var
+from .ops_norm import BatchNormPredict, BatchNormTraining
+from .tensor import Tensor
 
 registered_savers = []
 

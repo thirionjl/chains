@@ -2,9 +2,9 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from chains.core.shape import StaticShape
-from chains.core.tensor import Tensor
-from chains.utils import validate
+from .static_shape import StaticShape
+from .tensor import Tensor, Shape
+from ..utils import validate
 
 
 class ConvFormat:
@@ -49,7 +49,7 @@ CHWN = ConvFormat((3, 0, 1, 2), (0, 1, 2, 3))
 TensorFlowNHWC = ConvFormat((0, 3, 1, 2), (3, 2, 0, 1))
 
 
-def im2col(activations: Tensor, filters: Tensor, padding: int = 0,
+def im2col(activations: Tensor, filters_shape: Shape, padding: int = 0,
            stride: int = 1):
     """
        Return the 4-D activations tensor as a 2-D tensor XC
@@ -62,13 +62,13 @@ def im2col(activations: Tensor, filters: Tensor, padding: int = 0,
        activations first by rows, then by columns
 
        :param activations: 4-D Tensor in NCHW format
-       :param filters: 4-D Tensor in DCHW format
-       :param padding: Common padding applied to left,righ,top and bottom
+       :param filters_shape: Shape of filter in DCHW tuple format
+       :param padding: Common padding applied to left,right,top and bottom
        :param stride: Stride
        :return: activations as a 2-D tensor with dimensions
        (filter_flattened_size, m * clipping_positions_cnt)
        """
-    m, c, nh, nw, d, fh, fw = _all_dimensions(activations, filters)
+    m, c, nh, nw, _, fh, fw = _all_dimensions(activations.shape, filters_shape)
     activations_padded = pad(activations, padding)
 
     channels, rows, cols = _im2col_indices(nh, nw, fh, fw, c, padding, stride)
@@ -79,7 +79,7 @@ def im2col(activations: Tensor, filters: Tensor, padding: int = 0,
     return im2col_2d
 
 
-def col2im(cols: Tensor, activations: Tensor, filters: Tensor,
+def col2im(cols: Tensor, activations_shape: Shape, filters_shape: Shape,
            padding: int = 0, stride: int = 1):
     """
       Return a 4-D activations tensor from the im2col tensor.
@@ -87,7 +87,7 @@ def col2im(cols: Tensor, activations: Tensor, filters: Tensor,
       in im2col 2D matrix the k values are summed back. (consequence of
        multi-variable derivation chain rule applied)
     """
-    m, c, nh, nw, d, fh, fw = _all_dimensions(activations, filters)
+    m, c, nh, nw, _, fh, fw = _all_dimensions(activations_shape, filters_shape)
 
     h_padded, w_padded = nh + 2 * padding, nw + 2 * padding
     activations_padded = np.zeros((m, c, h_padded, w_padded), dtype=cols.dtype)
@@ -102,7 +102,7 @@ def col2im(cols: Tensor, activations: Tensor, filters: Tensor,
     else:
         out = activations_padded[:, :, padding:-padding, padding:-padding]
 
-    assert out.shape == activations.shape
+    assert out.shape == activations_shape
     return out
 
 
@@ -115,20 +115,20 @@ def pad(activations: Tensor, padding: int = 0):
                       mode='constant')
 
 
-def _all_dimensions(activations, filters):
-    if activations.ndim != 4:
-        raise ValueError(f"activations should be a 4 dimensional tensor "
-                         f"but got {activations.ndim} dimensions")
-    if filters.ndim != 4:
-        raise ValueError(f"filters should be a 4 dimensional tensor "
-                         f"but got {filters.ndim} dimensions")
+def _all_dimensions(activations_shape: Shape, filters_shape: Shape):
+    if len(activations_shape) != 4:
+        raise ValueError(f"activations_shape should be 4 dimensional "
+                         f"but got {len(activations_shape)} dimensions")
+    if len(filters_shape) != 4:
+        raise ValueError(f"filter_shape should be a dimensional "
+                         f"but got {len(filters_shape)} dimensions")
 
-    d, c, fh, fw = filters.shape
-    m, s, nh, nw = activations.shape
+    d, c, fh, fw = filters_shape
+    m, s, nh, nw = activations_shape
 
     if c != s:
         raise ValueError(f"Number of channels should be the same "
-                         f"in activations({s}) and filters({c})")
+                         f"in activations_shape({s}) and filters_shape({c})")
 
     return m, c, nh, nw, d, fh, fw
 
@@ -181,5 +181,5 @@ def im2col_filters(filters: Tensor):
     return filters.reshape(d, c * fh * fw)
 
 
-def col2im_filters(d_col_filters, filters):
-    return d_col_filters.reshape(filters.shape)
+def col2im_filters(d_col_filters: Tensor, filters_shape: Shape):
+    return d_col_filters.reshape(filters_shape)

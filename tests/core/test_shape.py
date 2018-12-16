@@ -1,4 +1,4 @@
-from chains.core.shape import StaticShape, Dim
+from chains.core.static_shape import StaticShape, Dim
 
 
 def test_is_broadcast_compatible():

@@ -4,7 +4,7 @@ from numpy import array
 from numpy.testing import assert_allclose
 
 from chains.core.ops_norm import BatchNormTraining, BatchNormPredict
-from chains.core.shape import StaticShape, Dim
+from chains.core.static_shape import StaticShape, Dim
 
 
 def test_batch_norm_computation_and_gradient():

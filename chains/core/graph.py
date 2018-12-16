@@ -6,11 +6,11 @@ from typing import Dict, Set
 
 import numpy as np
 
-from chains.utils.naming import NameGenerator
 from .ops import Var, Constant, Placeholder, Op
 from .ops_arithmetic import Negate, Pow, Add, ConstMul, Mul
 from .ops_mat import Transpose, MatMul
 from .tensor import is_tensor, Tensor
+from ..utils.naming import NameGenerator
 
 __all__ = ["Node", "Graph"]
 

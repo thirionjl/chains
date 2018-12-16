@@ -4,7 +4,7 @@ from chains.core import saver
 from chains.core.initializers import ConstantInitializer
 from chains.core.ops import Var
 from chains.core.ops_norm import BatchNormTraining
-from chains.core.shape import StaticShape
+from chains.core.static_shape import StaticShape
 
 
 def test_save_var_back_and_forth():

@@ -3,11 +3,12 @@ import abc
 import numpy as np
 
 from .ops import UnaryOp, BinaryOp
-from .shape import StaticShape
+from .static_shape import StaticShape
 from .tensor import Tensor
 
 __all__ = ["DimOp", "AsScalar", "Transpose", "MatMul", "Reduction",
-           "SumComponents", "AvgComponents", "MaxComponent", "Reshape"]
+           "SumComponents", "AvgComponents", "ArgMax", "MaxComponent",
+           "Reshape"]
 
 
 class DimOp(UnaryOp):

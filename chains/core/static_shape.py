@@ -3,8 +3,8 @@ from typing import Union, Iterable
 
 import numpy as np
 
-from chains.utils import validate
-from .tensor import Tensor
+from .tensor import Shape, Tensor
+from ..utils import validate
 
 __all__ = ["Dim", "StaticShape"]
 
@@ -88,7 +88,7 @@ class StaticShape(tuple):
         return cls()
 
     @classmethod
-    def from_tuple(cls, t):
+    def from_tuple(cls, t: Shape):
         return cls(*t)
 
     @classmethod

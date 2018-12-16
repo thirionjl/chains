@@ -3,10 +3,10 @@ from typing import Callable
 
 import numpy as np
 
-from chains.core.graph import Graph
-from chains.core.optimizers import Optimizer
-from chains.core.tensor import Tensor
-from chains.utils import validate
+from ..core.graph import Graph
+from ..core.optimizers import Optimizer
+from ..core.tensor import Tensor
+from ..utils import validate
 
 __all__ = ["FeedMethod", "TrainListener", "Training", "MiniBatchTraining",
            "BatchTraining"]

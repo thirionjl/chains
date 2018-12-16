@@ -2,7 +2,7 @@ from typing import Iterable, Tuple
 
 import numpy as np
 
-from chains.core import tensor
+from ..core import tensor
 
 
 def is_not_blank(name: str, value: str):

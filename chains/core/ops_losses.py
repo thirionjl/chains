@@ -1,9 +1,8 @@
 import numpy as np
 
-from chains.core.ops_activation import SoftMax
 from .ops import BinaryOp
-from .ops_activation import Sigmoid
-from .shape import StaticShape
+from .ops_activation import Sigmoid, SoftMax
+from .static_shape import StaticShape
 from .tensor import Tensor
 
 __all__ = ["SigmoidCrossEntropyWithLogits", "SigmoidCrossEntropy",

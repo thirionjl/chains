@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from chains.core.ops_conv import Conv2D
-from chains.core.shape import StaticShape, Dim
+from chains.core.static_shape import StaticShape, Dim
 from chains.core.utils_conv import TensorFlowNHWC
 
 

@@ -9,8 +9,8 @@ import abc
 
 import numpy as np
 
-from chains.utils import validate
-from .shape import StaticShape
+from .static_shape import StaticShape
+from ..utils import validate
 
 __all__ = ["VarInitializer", "ConstantInitializer", "ZeroInitializer",
            "RandomNormalInitializer", "HeInitializer", "XavierInitializer"]

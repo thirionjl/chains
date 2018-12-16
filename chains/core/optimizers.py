@@ -4,10 +4,10 @@ from typing import Dict
 
 import numpy as np
 
-from chains.utils import validate
 from .graph import Graph, Node
-from .shape import StaticShape
+from .static_shape import StaticShape
 from .tensor import Tensor
+from ..utils import validate
 
 __all__ = ["Optimizer", "GradientDescentOptimizer", "MomentumOptimizer",
            "AdamOptimizer"]

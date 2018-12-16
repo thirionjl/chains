@@ -1,5 +1,5 @@
-from chains.front.network import Network
-from chains.front.training import Training
+from .network import Network
+from .training import Training
 
 
 # TODO add configurable metrics: -> Accuracy ? Cost ?

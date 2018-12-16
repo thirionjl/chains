@@ -1,9 +1,9 @@
 """Common arithmetic operations"""
 import numpy as np
 
-from chains.utils import validate
 from .ops import ElementWiseBinaryOp, ElementWiseUnaryOp
 from .tensor import Tensor
+from ..utils import validate
 
 __all__ = ["Add", "Negate", "ConstMul", "Mul", "Pow", "IsGreaterThan"]
 

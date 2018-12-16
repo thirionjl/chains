@@ -1,7 +1,7 @@
 import numpy as np
 
 from .ops import Op
-from .shape import StaticShape
+from .static_shape import StaticShape
 from .tensor import Tensor
 
 __all__ = ["FullyConnected"]

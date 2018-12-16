@@ -1,9 +1,9 @@
 import numpy as np
 
-from chains.core import utils_conv as uc
-from chains.core.ops import Op
-from chains.core.shape import StaticShape
-from chains.core.tensor import Tensor
+from .ops import Op
+from .static_shape import StaticShape
+from .tensor import Tensor
+from ..core import utils_conv as uc
 
 __all__ = ["Conv2D"]
 
@@ -76,7 +76,7 @@ class Conv2D(Op):
         self.filters = self.conv_format.dchw(filters)
         self.bias = bias
 
-        self.xc = uc.im2col(self.features, self.filters, self.padding,
+        self.xc = uc.im2col(self.features, self.filters.shape, self.padding,
                             self.stride)
         self.fc = uc.im2col_filters(self.filters)
         zc = self.fc @ self.xc + bias
@@ -101,9 +101,9 @@ class Conv2D(Op):
         dfc = dzc @ self.xc.T
         dxc = self.fc.T @ dzc if self.feature_derivative else 0
 
-        df = uc.col2im_filters(dfc, self.filters)
-        dx = uc.col2im(dxc, self.features, self.filters, self.padding,
-                       self.stride)
+        df = uc.col2im_filters(dfc, self.filters.shape)
+        dx = uc.col2im(dxc, self.features.shape, self.filters.shape,
+                       self.padding, self.stride)
 
         return self.conv_format.nchw_inv(dx), self.conv_format.dchw_inv(df), db
 

@@ -4,11 +4,11 @@ import abc
 
 import numpy as np
 
-from chains.utils import validate
 from .initializers import VarInitializer
-from .shape import StaticShape
+from .static_shape import StaticShape
 from .tensor import Tensor
 from .utils_broadcasting import remove_broadcasting
+from ..utils import validate
 
 __all__ = ["Op", "UnaryOp", "BinaryOp", "Var", "Placeholder",
            "Constant", "ElementWiseBinaryOp", "ElementWiseUnaryOp"]

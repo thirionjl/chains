@@ -1,16 +1,16 @@
 """Collection of activation functions"""
 import numpy as np
 
-from chains.core.ops import UnaryOp
-from chains.core.shape import StaticShape
-from .ops import ElementWiseUnaryOp
+from .ops import UnaryOp, ElementWiseUnaryOp
+from .static_shape import StaticShape
 from .tensor import Tensor
 
-__all__ = ["ReLu", "LeakyReLu", "TanH", "Sigmoid"]
+__all__ = ["ReLu", "LeakyReLu", "TanH", "Sigmoid", "SoftMax"]
 
 
 class ReLu(ElementWiseUnaryOp):
     """Implements the rectified linear unit operation"""
+
     def compute(self, x: Tensor):
         super().compute(x)
         self.output = np.fmax(x, 0)
@@ -21,6 +21,7 @@ class ReLu(ElementWiseUnaryOp):
 
 class LeakyReLu(ElementWiseUnaryOp):
     """Implements the leaky rectified linear unit operation"""
+
     def __init__(self, leak: float = 0.01):
         """Creates the op
         :param leak: A float representing the leak (Derivative on negatives)"""
@@ -40,6 +41,7 @@ class LeakyReLu(ElementWiseUnaryOp):
 
 class TanH(ElementWiseUnaryOp):
     """Hyperbolic tangent activation function"""
+
     def compute(self, x: Tensor):
         super().compute(x)
         self.output = np.tanh(x)
@@ -51,6 +53,7 @@ class TanH(ElementWiseUnaryOp):
 
 class Sigmoid(ElementWiseUnaryOp):
     """Sigmoid activation function. Used for binary classification"""
+
     @staticmethod
     def sigmoid(x: Tensor):
         return np.exp(np.fmin(x, 0)) / (1 + np.exp(-np.abs(x)))
@@ -65,6 +68,7 @@ class Sigmoid(ElementWiseUnaryOp):
 
 class SoftMax(UnaryOp):
     """Softmax activation function"""
+
     def __init__(self, class_axis=0):
         """:param class_axis: The axis of the input on which to find the values
         for the different classes

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from chains.core.ops_mat import ArgMax
-from chains.core.shape import StaticShape
+from chains.core.static_shape import StaticShape
 
 
 def test_argmax():
