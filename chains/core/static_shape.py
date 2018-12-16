@@ -1,8 +1,10 @@
 from itertools import zip_longest
+from typing import Union, Iterable
 
 import numpy as np
 
-from .tensor import Tensor
+from .tensor import Shape, Tensor
+from ..utils import validate
 
 __all__ = ["Dim", "StaticShape"]
 
@@ -86,7 +88,7 @@ class StaticShape(tuple):
         return cls()
 
     @classmethod
-    def from_tuple(cls, t):
+    def from_tuple(cls, t: Shape):
         return cls(*t)
 
     @classmethod
@@ -96,6 +98,22 @@ class StaticShape(tuple):
     def is_broadcast_compatible(self, other):
         return all(m.is_broadcast_compatible(n) for m, n in
                    self.zip_dimensions(self, other))
+
+    def reduce_along_axis(self, axis: Union[Iterable[int], int],
+                          keep_dims=False):
+        ax_tuple = (axis,) if isinstance(axis, int) else axis
+
+        squeezed = [True] * len(self)
+        for ax in ax_tuple:
+            self.check_axis_index(ax)
+            squeezed[ax] = False
+
+        if keep_dims:
+            return StaticShape.from_tuple(
+                (d if keep else 1) for d, keep in zip(self, squeezed))
+        else:
+            return StaticShape.from_tuple(
+                d for d, keep in zip(self, squeezed) if keep)
 
     @staticmethod
     def zip_dimensions(a, b):
@@ -151,3 +169,8 @@ class StaticShape(tuple):
         if axis < 0 and not (-self.ndim <= axis < 0):
             raise ValueError(f"axis is out of bounds of shape {self} "
                              f"got {axis}")
+
+    def transpose(self, *args):
+        perm = args[0] if len(args) == 1 else tuple(args)
+        validate.is_permutation(perm, len(self))
+        return StaticShape(*(self[perm[i]] for i in range(len(perm))))

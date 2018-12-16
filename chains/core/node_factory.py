@@ -1,22 +1,19 @@
 import numpy as np
 
-from chains.core.ops_activation import SoftMax, LeakyReLu
-from chains.core.ops_losses import SoftMaxCrossEntropy
-from chains.core.ops_mat import ArgMax
-from chains.core.ops_norm import BatchNormTraining, BatchNormPredict
-from chains.core.tensor import Tensor
-from chains.utils import validate
 from .graph import Node
 from .initializers import ConstantInitializer, VarInitializer
 from .ops import Var, Placeholder, Constant
-from .ops_activation import Sigmoid, TanH, ReLu
+from .ops_activation import SoftMax, LeakyReLu, Sigmoid, TanH, ReLu
 from .ops_arithmetic import IsGreaterThan
-from .ops_losses import SigmoidCrossEntropy
-from .ops_mat import MatMul, MaxComponent, SumComponents, AvgComponents
+from .ops_fully_connected import FullyConnected
+from .ops_losses import SigmoidCrossEntropy, SoftMaxCrossEntropy
+from .ops_mat import ArgMax, MatMul, MaxComponent, SumComponents, AvgComponents
 from .ops_mat import Transpose, Reshape, AsScalar, DimOp
-from .ops_nn import FullyConnected
+from .ops_norm import BatchNormTraining, BatchNormPredict
 from .ops_regularization import L2NormRegularization, Dropout
-from .shape import StaticShape
+from .static_shape import StaticShape
+from .tensor import Tensor
+from ..utils import validate
 
 __all__ = ["initialized_var", "var", "placeholder", "constant", "add", "sub",
            "mul", "pow", "neg", "mat_mul", "mat_max", "mat_sum", "mat_avg",
@@ -149,7 +146,7 @@ def l2_norm_regularizer(lambd, batch_size, weight_matrices_array, name=None):
 
 
 def dropout(keep_prob, logits: Node, name=None):
-    return Node(Dropout(keep_prob), [logits])
+    return Node(Dropout(keep_prob), [logits], name=name)
 
 
 def fully_connected(inputs: Node, weights: Node, bias: Node,

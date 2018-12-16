@@ -1,7 +1,7 @@
 import numpy as np
 
 from chains.core import ops_regularization as reg, env
-from chains.core.shape import StaticShape
+from chains.core.static_shape import StaticShape
 
 
 def test_coursera_dropout_forward():

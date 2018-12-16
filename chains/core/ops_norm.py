@@ -1,10 +1,9 @@
 import numpy as np
 
-from chains.core.ops import Op
-from chains.core.shape import Dim
-from chains.utils import validate
-from .shape import StaticShape
+from .ops import Op
+from .static_shape import Dim, StaticShape
 from .tensor import Tensor
+from ..utils import validate
 
 __all__ = ["BatchNormTraining", "BatchNormPredict"]
 

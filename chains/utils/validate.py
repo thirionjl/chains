@@ -1,8 +1,8 @@
-from typing import Iterable
+from typing import Iterable, Tuple
 
 import numpy as np
 
-from chains.core import tensor
+from ..core import tensor
 
 
 def is_not_blank(name: str, value: str):
@@ -62,3 +62,9 @@ def _can_be_cast_to(dtype, super_type, name):
     if not np.can_cast(dtype, super_type):
         raise TypeError(f"Parameter {name} should be convertible "
                         f"to {super_type}")
+
+
+def is_permutation(perm: Tuple[int], length):
+    identity = range(length)
+    if set(perm) != set(identity):
+        raise ValueError(f"{perm} is not a permutation tuple of {identity}")

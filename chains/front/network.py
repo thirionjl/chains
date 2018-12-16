@@ -1,10 +1,10 @@
 import abc
 
-from chains.core import node_factory as f, initializers as init
-from chains.core.graph import Node, Graph
-from chains.core.shape import Dim
-from chains.utils import validate
-from chains.utils.naming import NameGenerator
+from ..core import node_factory as f, initializers as init
+from ..core.graph import Node, Graph
+from ..core.static_shape import Dim
+from ..utils import validate
+from ..utils.naming import NameGenerator
 
 
 class Network(abc.ABC):

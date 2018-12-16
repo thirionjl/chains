@@ -1,38 +1,80 @@
+"""Set of base classes to extend to create your own operations that can fit
+in a computation `<chains.core.graph.Node>`"""
 import abc
 
 import numpy as np
 
-from chains.utils import validate
 from .initializers import VarInitializer
-from .shape import StaticShape
+from .static_shape import StaticShape
 from .tensor import Tensor
 from .utils_broadcasting import remove_broadcasting
+from ..utils import validate
 
 __all__ = ["Op", "UnaryOp", "BinaryOp", "Var", "Placeholder",
            "Constant", "ElementWiseBinaryOp", "ElementWiseUnaryOp"]
 
 
 class Op(abc.ABC):
+    """Parent class of all operations that can be held by a `Node`object.
+    Represents a simple operation and must provide a `compute`method that
+    calculates the output value given some inputs and an `partials` method
+    that computes the partial derivative of a cost function relative to all its
+    inputs given the partial derivative of this same cost function relative to
+    its output.
+
+    Public attributes:
+    - output: The computed output of the operation.
+
+    Because `compute`is always called before `partial` it is recommended `Op`
+    subclasses do cache the results of intermediate computations that are
+    useful to compute the partial derivatives afterwards.
+    """
+
     def __init__(self):
         self.output = None
 
     def compute(self):
+        """Computes the output ot the operation given some input `Tensor`
+        values. Must store the result in `self.output` field"""
         pass
 
     def partials(self, d_output):
+        """Returns an ordered list representing partial derivatives relative to
+         each input (in same order they were received in the `compute`method).
+
+         Each partial derivative represents the derivative ot a cost function
+         relative to it's input, given the partial derivative of that same
+         cost function relative to this `Op`output. This partial derivative is
+         given in parameter `d_output`
+        """
         raise RuntimeError(f"{self} does not support derivation")
 
     def check_incoming_shapes(self, *static_shapes):
+        """Verifies the shapes of inputs are valid.
+        :param static_shapes: Ordered list of `<chains.core.shape.StaticShape>`
+        """
         pass
 
     def compute_out_shape(self, *static_shapes) -> StaticShape:
+        """Computes the output `<chains.core.shape.StaticShape>`
+
+        :param static_shapes: Ordered list of `<chains.core.shape.StaticShape>`
+        :return: Resulting `<chains.core.shape.StaticShape>` for those inputs
+        """
         raise NotImplementedError
 
     def compute_out_dtype(self, *dtypes):
+        """Computes the output dtype given input dtypes.
+
+        :param dtypes: Ordered list of dtypes of the inputs
+        :return: Resulting dtype given those inputs
+        """
         return np.result_type(*dtypes)
 
 
 class UnaryOp(Op, abc.ABC):
+    """Base class for all `Op` having 1 input parameter"""
+
     def __init__(self):
         super().__init__()
         self.x = None
@@ -42,6 +84,8 @@ class UnaryOp(Op, abc.ABC):
 
 
 class BinaryOp(Op, abc.ABC):
+    """Base class for all `Op` having 2 input parameters"""
+
     def __init__(self):
         super().__init__()
         self.x = None
@@ -53,6 +97,7 @@ class BinaryOp(Op, abc.ABC):
 
 
 class _NoOp(Op):
+    """Base class for all `Op` having zero input parameters"""
 
     def __init__(self, shape: tuple, dtype=np.float32):
         super().__init__()
@@ -83,9 +128,15 @@ class _NoOp(Op):
 
 
 class Var(_NoOp):
+    """Represents a variable"""
 
     def __init__(self, initializer: VarInitializer, shape: tuple,
                  dtype=np.float32):
+        """Creates a variable.
+        :param initializer: VarInitializer that will initialize the variable
+        :param shape: `StaticShape`of the variable
+        :Param dtype: (optional) dtype of the variable. float32 by default
+        """
         super().__init__(shape, dtype)
         validate.is_a("var_initializer", initializer, VarInitializer)
 
@@ -96,6 +147,7 @@ class Var(_NoOp):
         self.initializer = initializer
 
     def initialize_if_needed(self):
+        """Triggers variable initialization if not already done"""
         if self.output is None:
             self.output = self.initializer.initialize(self.shape.to_numpy(),
                                                       self.dtype)
@@ -104,10 +156,14 @@ class Var(_NoOp):
 
 
 class Placeholder(_NoOp):
+    """Represents a placeholder. A placeholder is a constant that will be
+    provided later, during the training phase of machine learning"""
     pass
 
 
 class Constant(_NoOp):
+    """Represent a simple constant"""
+
     def __init__(self, value: Tensor, dtype=np.float32):
         super().__init__(StaticShape.of_tensor(value), dtype)
         self.output = np.array(value).astype(dtype)
@@ -115,6 +171,13 @@ class Constant(_NoOp):
 
 
 class ElementWiseBinaryOp(BinaryOp, abc.ABC):
+    """Base class for `Op`s that take 2 inputs. If those inputs are Tensors,
+    child classes run the same function for each component of that Tensor
+    element-wise. This makes derivatives simpler to calculate. Moreover
+    this base class deals with to inputs that are not the same shape but are
+    broadcastable to the same shape.
+    """
+
     def check_incoming_shapes(self, x: StaticShape, y: StaticShape):
         if not x.is_broadcast_compatible(y):
             raise ValueError(
@@ -135,6 +198,11 @@ class ElementWiseBinaryOp(BinaryOp, abc.ABC):
 
 
 class ElementWiseUnaryOp(UnaryOp, abc.ABC):
+    """Base class for `Op`s that take 1 input. If this input is a Tensor,
+   child classes run the same function for each component of that Tensor
+   element-wise. This makes derivatives simpler to calculate.
+   """
+
     def check_incoming_shapes(self, x: StaticShape):
         pass
 
