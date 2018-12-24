@@ -11,7 +11,7 @@ __all__ = ["MaxPool"]
 
 class MaxPool(Op):
 
-    def __init__(self, stride=2, conv_format=uc.NCHW):
+    def __init__(self, padding=0, stride=2, conv_format=uc.NCHW):
         super().__init__()
         validate.is_strictly_greater_than("stride", stride, 1)
         self.conv_format = conv_format

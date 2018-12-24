@@ -64,7 +64,13 @@ def _can_be_cast_to(dtype, super_type, name):
                         f"to {super_type}")
 
 
-def is_permutation(perm: Tuple[int], length):
+def is_permutation(name: str, perm: Tuple[int], length):
     identity = range(length)
     if set(perm) != set(identity):
-        raise ValueError(f"{perm} is not a permutation tuple of {identity}")
+        raise ValueError(f"{name} is not a permutation tuple of {identity}")
+
+
+def has_length(name: str, iterable: Iterable, min_len: int = 1):
+    if len(iterable) < min_len:
+        raise ValueError(
+            f"{name} should be at least {min_len} elements long")

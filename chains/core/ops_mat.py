@@ -1,14 +1,17 @@
 import abc
+from typing import Tuple
 
 import numpy as np
 
+from chains.utils import validate
 from .ops import UnaryOp, BinaryOp
 from .static_shape import StaticShape
 from .tensor import Tensor
+from .utils_permutation import Perm, inverse_perm
 
 __all__ = ["DimOp", "AsScalar", "Transpose", "MatMul", "Reduction",
            "SumComponents", "AvgComponents", "ArgMax", "MaxComponent",
-           "Reshape"]
+           "Reshape", "Flatten"]
 
 
 class DimOp(UnaryOp):
@@ -58,36 +61,29 @@ class AsScalar(UnaryOp):  # TODO Check root of graph is scalar
 
 class Transpose(UnaryOp):
 
-    def __init__(self, axes=None):
+    def __init__(self, axes: Perm = None):
         if axes is not None:
-            if set(axes) != set(range(len(axes))):
-                raise ValueError("Invalid permutation of axes submitted")
+            validate.is_permutation("axes", axes, len(axes))
         self.axes = axes
 
     def check_incoming_shapes(self, x: StaticShape):
         if self.axes is None:
             if len(x) < 2:
-                raise ValueError(
-                    f"Transpose {self.axes} requires at least 2-D "
-                    f"got {len(x)}")
-        elif len(x) != len(self.axes):
-            raise ValueError(f"Transpose {self.axes} requires an input tensor"
-                             f" with {len(self.axes)} dimensions \
-            but got {len(x)}")
+                raise ValueError(f"Transpose {self.axes} requires at least "
+                                 f"2-D got {x.ndim}")
+        validate.is_permutation("axes", self.axes, x.ndim)
 
     def compute_out_shape(self, x_shape: StaticShape) -> StaticShape:
         if self.axes is None:
-            args = (x_shape[1], x_shape[0]) + x_shape[2:]
-        else:
-            args = (x_shape[i] for i in self.axes)
-        return StaticShape(*args)
+            self.axes = (1, 0) + tuple(range(start=2, stop=x_shape.ndim))
+        return x_shape.transpose(self.axes)
 
     def compute(self, x: Tensor):
         super().compute(x)
         self.output = np.transpose(x, self.axes)
 
     def partials(self, d_output):
-        return np.transpose(d_output, self.axes),
+        return np.transpose(d_output, inverse_perm(self.axes)),
 
 
 class MatMul(BinaryOp):
@@ -196,18 +192,18 @@ class ArgMax(UnaryOp):  # todo: Manage axis
 
 class Reshape(UnaryOp):
 
+    def __init__(self, shape: StaticShape):
+        super().__init__()
+        validate.is_not_none("shape", shape)
+        self.initial_shape = None
+        self.shape = shape
+
     def check_incoming_shapes(self, x_shape: StaticShape):
         print("Warning: Cannot check incoming shapes for reshape operations")
         pass
 
     def compute_out_shape(self, x_shape: StaticShape) -> StaticShape:
-        return StaticShape()
-
-    def __init__(self, shape: StaticShape):
-        super().__init__()
-        self.initial_shape = None
-        self.shape = shape  # TODO Refuse None in shape ! Could also add
-        # reshape as binary op for dynamic shape
+        return self.shape
 
     def compute(self, x: Tensor):
         super().compute(x)
@@ -215,4 +211,46 @@ class Reshape(UnaryOp):
         self.output = np.reshape(x, newshape=self.shape.to_numpy())
 
     def partials(self, d_output: Tensor):
-        return (np.reshape(np.copy(d_output), newshape=self.initial_shape)),
+        return (np.reshape(d_output, newshape=self.initial_shape)),
+
+
+class Flatten(UnaryOp):
+    def __init__(self, keep_axis=-1):
+        super().__init__()
+        self.initial_shape = None
+        self.keep_axis = keep_axis
+        self.pos_keep_axis = None
+
+    def check_incoming_shapes(self, x_shape: StaticShape):
+        x_shape.check_axis_index(self.keep_axis)
+        self.pos_keep_axis = self.keep_axis if self.keep_axis >= 0 else len(
+            x_shape) + self.keep_axis
+
+        if x_shape.is_unknown():
+            print(
+                "Warning: Cannot check incoming shapes for reshape operations")
+
+    def compute_out_shape(self, x_shape: StaticShape) -> StaticShape:
+        return x_shape.flatten_axis(keep_axis=self.keep_axis)
+
+    def compute(self, x: Tensor):
+        super().compute(x)
+        self.initial_shape = np.shape(x)
+        out_shape = self._flattened_shape(self.initial_shape)
+        self.output = np.reshape(x, newshape=out_shape)
+
+    def _flattened_shape(self, t: Tuple):
+        ax = self.pos_keep_axis
+
+        flattened_dim = 1
+        for idx, dim in enumerate(t):
+            if idx != ax:
+                flattened_dim *= t[idx]
+
+        if ax == 0:
+            return t[ax], flattened_dim
+        else:
+            return flattened_dim, t[ax]
+
+    def partials(self, d_output: Tensor):
+        return (np.reshape(d_output, newshape=self.initial_shape)),

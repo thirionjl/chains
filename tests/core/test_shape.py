@@ -91,3 +91,17 @@ def test_transpose():
     assert shape.transpose((1, 0, 2)) == StaticShape(3, 2, m)
     assert shape.transpose(1, 0, 2) == StaticShape(3, 2, m)
     assert shape.transpose(2, 1, 0) == StaticShape(m, 3, 2)
+
+
+def test_flatten():
+    m = Dim.unknown()
+
+    assert StaticShape(2, 3, m).flatten_axis(keep_axis=-1) == StaticShape(6, m)
+    assert StaticShape(2, 3, m).flatten_axis(keep_axis=2) == StaticShape(6, m)
+    assert StaticShape(m, 2, 3).flatten_axis(keep_axis=0) == StaticShape(m, 6)
+    assert StaticShape(m, 6).flatten_axis(keep_axis=-2) == StaticShape(m, 6)
+
+    shape = StaticShape(2, 3, m).flatten_axis(keep_axis=0)
+    assert len(shape) == 2
+    assert shape[0] == Dim.of(2)
+    assert shape[1].is_unknown()

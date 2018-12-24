@@ -1,8 +1,11 @@
 import abc
+from operator import xor
 
+from chains.core.utils_conv import ConvFormat, NCHW
+from chains.core.utils_permutation import Perm
 from ..core import node_factory as f, initializers as init
 from ..core.graph import Node, Graph
-from ..core.static_shape import Dim
+from ..core.static_shape import StaticShape, Dim
 from ..utils import validate
 from ..utils.naming import NameGenerator
 
@@ -35,14 +38,35 @@ class Network(abc.ABC):
 
 class Sequence(Network):
 
-    def __init__(self, cnt_features: int, layers, classifier,
-                 regularizer=None):
+    def __init__(self, layers, classifier, regularizer=None,
+                 cnt_features: int = None, feature_shape: StaticShape = None,
+                 sample_axis_last=True):
         super().__init__()
-        self.layer_names = NameGenerator()
-        self.cnt_features = Dim.of(cnt_features)
+
+        if not xor(cnt_features is not None, feature_shape is not None):
+            raise ValueError(f"One and only one of cnt_features or feature"
+                             f"shape should be provided")
+
+        if cnt_features is not None:
+            validate.is_a("cnt_features", int)
+            validate.is_strictly_greater_than("cnt_features", 0)
+            self.feature_shape = Dim.of(cnt_features)
+        else:
+            validate.has_length("feature_shape", feature_shape)
+            validate.is_a("feature_shape", feature_shape, tuple)
+            self.feature_shape = StaticShape.from_tuple(feature_shape)
+
+        # Format features last !! TODO
         self.cnt_samples = Dim.unknown()
-        self.inputs = f.placeholder(
-            shape=(self.cnt_features, self.cnt_samples))
+
+        if sample_axis_last:
+            inputs_shape = self.feature_shape + (self.cnt_samples,)
+        else:
+            inputs_shape = (self.cnt_samples,) + self.feature_shape
+
+        self.layer_names = NameGenerator()
+        self.cnt_samples = Dim.unknown()
+        self.inputs = f.placeholder(shape=inputs_shape)
 
         cost_graph, predict_graph, regularizable_vars = \
             self.inputs, self.inputs, []
@@ -56,7 +80,7 @@ class Sequence(Network):
         self.cnt_classes = classifier.cnt_classes
         self.label_size = classifier.label_size
         self.labels = f.placeholder(
-            shape=(self.label_size, self.cnt_samples))
+            shape=(self.label_size, self.cnt_samples))  # TODO features last
         cost_graph, predict_graph = classifier.append(self.layer_names,
                                                       cost_graph,
                                                       predict_graph,
@@ -115,13 +139,85 @@ class Dense(Layer):
         w_name = self.new_var_name("W")
         b_name = self.new_var_name("b")
         w = f.var(w_name, self.weight_initializer,
-                  shape=(self.neurons, cnt_features))
+                  shape=(self.neurons, cnt_features))  # TODO sample last
         b = f.var(b_name, self.bias_initializer, shape=(self.neurons, 1))
         cost_fc = f.fully_connected(cost_g, w, b, first_layer=(pos == 0),
                                     name=self.layer_name)
         predict_fc = f.fully_connected(predict_g, w, b, first_layer=(pos == 0),
                                        name=self.layer_name + "_p")
         return cost_fc, predict_fc, [w]
+
+
+class Flatten(Layer):
+    def do_append(self, pos, cost_g, predict_g):
+        return f.flatten(cost_g, name=self.layer_name), \
+               f.flatten(predict_g, name=self.layer_name + "_p"), []
+
+
+class Transpose(Layer):
+
+    def __init__(self, axes: Perm):
+        self.axes = axes
+
+    def do_append(self, pos, cost_g, predict_g):
+        return f.transpose(self.axes, cost_g, name=self.layer_name), \
+               f.transpose(self.axes, predict_g,
+                           name=self.layer_name + "_p"), []
+
+
+class Conv2dNoBias(Layer):
+    default_weight_initializer = init.HeInitializer()
+
+    def __init__(self, fh: int, fw: int, channels: int, padding=0,
+                 stride=1, conv_format: ConvFormat = NCHW,
+                 weight_initializer=None):
+        validate.is_strictly_greater_than("fh", fh, 0)
+        validate.is_strictly_greater_than("fw", fw, 0)
+        validate.is_strictly_greater_than("channels", channels, 0)
+
+        self.conv_format = conv_format
+        self.fh = fh
+        self.fw = fw
+        self.d = channels
+        self.padding = padding
+        self.stride = stride
+        self.weight_initializer = self.default_weight_initializer \
+            if weight_initializer is None else weight_initializer
+
+    def do_append(self, pos, cost_g, predict_g):
+        input_shape = StaticShape.from_tuple(cost_g.shape[1:])
+        if input_shape.is_unknown():
+            raise ValueError(
+                "Shape of conv2d input should be fully determined")
+
+        m, c, h, w = self.conv_format.nchw(cost_g.shape)
+
+        filters_shape = self.conv_format.dchw_inv(
+            StaticShape(self.d, c.value, self.fh, self.fw))
+
+        w_name = self.new_var_name("FW")
+        w = f.var(w_name, self.weight_initializer, shape=filters_shape)
+        cost = self._layer(cost_g, pos, w, self.layer_name)
+        predict = self._layer(cost_g, pos, w, self.layer_name + "_p")
+        return cost, predict, [w]
+
+    def _layer(self, cost_g, pos, w, name):
+        return f.conv2d_no_bias(cost_g, w, first_layer=(pos == 0),
+                                padding=self.padding, stride=self.stride,
+                                conv_format=self.conv_format, name=name)
+
+
+class MaxPool(Layer):
+    def __init__(self, stride=1, conv_format: ConvFormat = NCHW):
+        self.stride = stride
+        self.conv_format = conv_format
+
+    def do_append(self, pos, cost_g, predict_g):
+        cost = f.max_pool(cost_g, self.stride, self.conv_format,
+                          name=self.layer_name)
+        predict = f.max_pool(cost_g, self.stride, self.conv_format,
+                             name=self.layer_name + "_p")
+        return cost, predict, []
 
 
 class ReLu(Layer):

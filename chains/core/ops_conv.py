@@ -26,6 +26,7 @@ class Conv2D(Op):
     def check_incoming_shapes(self, features: StaticShape,
                               filters: StaticShape, b: StaticShape):
 
+        # TODO validate fh, fw against input size, should be smaller
         if features.ndim != 4:
             raise ValueError(f"features should be a 4 dimensional tensor "
                              f"but got {features.ndim} dimensions")
@@ -38,6 +39,7 @@ class Conv2D(Op):
         p = self.padding
         s = self.stride
 
+        #TODO check all concrete dims !
         if c != cc:
             raise ValueError(f"Number of channels should be the same "
                              f"in features({cc}) and filters({c})")
@@ -138,3 +140,35 @@ class Conv2D(Op):
             f"in activations({s}) and filters({c})"
 
         return m, c, nh, nw, d, fh, fw
+
+
+class Conv2DNoBias(Op):
+    def __init__(self, feature_derivative=True, padding=0, stride=1,
+                 conv_format=uc.NCHW):
+        super().__init__()
+        self.delegate = Conv2D(feature_derivative, padding, stride,
+                               conv_format)
+        self.bias = None
+
+    def check_incoming_shapes(self, features: StaticShape,
+                              filters: StaticShape):
+        d, _, _, _ = self.delegate.conv_format.dchw(filters)
+        if d.is_unknown():
+            raise ValueError(f"Number of filters could not be an unknown dim")
+        self.bias = np.zeros(shape=(d.value, 1))
+        self.delegate.check_incoming_shapes(features, filters,
+                                            StaticShape.of_tensor(self.bias))
+
+    def compute_out_shape(self, features: StaticShape,
+                          filters: StaticShape) -> StaticShape:
+        bias_shape = StaticShape.of_tensor(self.bias)
+        return self.delegate.compute_out_shape(features, filters,
+                                               bias_shape)
+
+    def compute(self, features: Tensor, filters: Tensor):
+        self.delegate.compute(features, filters, self.bias)
+        self.output = self.delegate.output
+
+    def partials(self, d_output):
+        dx, df, _ = self.delegate.partials(d_output)
+        return dx, df

@@ -1,5 +1,9 @@
 import numpy as np
 
+from chains.core.ops_conv import Conv2D, Conv2DNoBias
+from chains.core.ops_pooling import MaxPool
+from chains.core.utils_conv import NCHW
+from chains.core.utils_permutation import Perm
 from .graph import Node
 from .initializers import ConstantInitializer, VarInitializer
 from .ops import Var, Placeholder, Constant
@@ -8,7 +12,7 @@ from .ops_arithmetic import IsGreaterThan
 from .ops_fully_connected import FullyConnected
 from .ops_losses import SigmoidCrossEntropy, SoftMaxCrossEntropy
 from .ops_mat import ArgMax, MatMul, MaxComponent, SumComponents, AvgComponents
-from .ops_mat import Transpose, Reshape, AsScalar, DimOp
+from .ops_mat import Transpose, Reshape, AsScalar, DimOp, Flatten
 from .ops_norm import BatchNormTraining, BatchNormPredict
 from .ops_regularization import L2NormRegularization, Dropout
 from .static_shape import StaticShape
@@ -19,7 +23,7 @@ __all__ = ["initialized_var", "var", "placeholder", "constant", "add", "sub",
            "mul", "pow", "neg", "mat_mul", "mat_max", "mat_sum", "mat_avg",
            "transpose", "reshape", "as_scalar", "sigmoid_cross_entropy",
            "sigmoid", "is_greater_than", "tanh", "relu", "dim",
-           "l2_norm_regularizer", "dropout", "fully_connected"]
+           "l2_norm_regularizer", "dropout", "fully_connected", "flatten"]
 
 
 def initialized_var(name: str, value):
@@ -83,12 +87,16 @@ def mat_avg(left: Node, name=None):
     return Node(AvgComponents(), [left], name=name)
 
 
-def transpose(left: Node, name=None):
-    return Node(Transpose(), [left], name=name)
+def transpose(axes: Perm, left: Node, name=None):
+    return Node(Transpose(axes), [left], name=name)
 
 
 def reshape(shape: StaticShape, left: Node, name=None):
     return Node(Reshape(shape), [left], name=name)
+
+
+def flatten(left: Node, name=None):
+    return Node(Flatten(), [left], name=name)
 
 
 def as_scalar(left: Node, name=None):
@@ -152,6 +160,25 @@ def dropout(keep_prob, logits: Node, name=None):
 def fully_connected(inputs: Node, weights: Node, bias: Node,
                     *, first_layer=False, name=None) -> Node:
     return Node(FullyConnected(not first_layer), [inputs, weights, bias],
+                name=name)
+
+
+def conv2d(inputs: Node, filters: Node, bias: Node, *, first_layer=False,
+           padding=0, stride=1, conv_format=NCHW, name=None) -> Node:
+    n = Conv2D(feature_derivative=not first_layer, padding=padding,
+               stride=stride, conv_format=conv_format)
+    return Node(n, [inputs, filters, bias], name=name)
+
+
+def conv2d_no_bias(inputs: Node, filters: Node, *, first_layer=False,
+                   padding=0, stride=1, conv_format=NCHW, name=None) -> Node:
+    n = Conv2DNoBias(feature_derivative=not first_layer, padding=padding,
+                     stride=stride, conv_format=conv_format)
+    return Node(n, [inputs, filters], name=name)
+
+
+def max_pool(inputs: Node, stride=2, conv_format=NCHW, name=None):
+    return Node(MaxPool(stride=stride, conv_format=conv_format), [inputs],
                 name=name)
 
 

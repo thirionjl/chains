@@ -1,19 +1,19 @@
-from typing import Union, Iterable
+from typing import Union, Tuple
 
 import numpy as np
 
 from .static_shape import StaticShape
 from .tensor import Tensor, Shape
+from .utils_permutation import Perm, inverse_perm
 from ..utils import validate
 
 
 class ConvFormat:
     Transposable = Union[Tensor, StaticShape]
-    Perm = Iterable[int]
 
     def __init__(self, features_perm: Perm, filters_perm: Perm):
-        validate.is_permutation(features_perm, 4)
-        validate.is_permutation(filters_perm, 4)
+        validate.is_permutation("features_perm", features_perm, 4)
+        validate.is_permutation("filters_perm", filters_perm, 4)
         self.features_perm = features_perm
         self.filters_perm = filters_perm
 
@@ -30,18 +30,10 @@ class ConvFormat:
         return f.transpose(self._inverse_filter_perm())
 
     def _inverse_filter_perm(self: Perm) -> Perm:
-        return self.inverse_perm(self.filters_perm)
+        return inverse_perm(self.filters_perm)
 
     def _inverse_feature_perm(self: Perm) -> Perm:
-        return self.inverse_perm(self.features_perm)
-
-    @staticmethod
-    def inverse_perm(perm):
-        return np.argsort(perm)
-
-    @staticmethod
-    def apply_perm(f, perm):
-        return tuple(f[perm[i]] for i in range(len(perm)))
+        return inverse_perm(self.features_perm)
 
 
 NCHW = ConvFormat((0, 1, 2, 3), (0, 1, 2, 3))
@@ -106,12 +98,13 @@ def col2im(cols: Tensor, activations_shape: Shape, filters_shape: Shape,
     return out
 
 
-def pad(activations: Tensor, padding: int = 0):
-    if padding == 0:
+def pad(activations: Tensor, padding: Tuple = (0, 0, 0, 0)):
+    l, r, t, b = padding
+    if l == 0 and r == 0 and t == 0 and b == 0:
         return activations
     else:
         p = padding
-        return np.pad(activations, ((0, 0), (0, 0), (p, p), (p, p)),
+        return np.pad(activations, ((0, 0), (0, 0), (l, r), (t, b)),
                       mode='constant')
 
 

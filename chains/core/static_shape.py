@@ -71,9 +71,14 @@ class Dim:
             return f"Dim.of({self.value})"
 
     def __add__(self, other):
-        if self.value is None or other.value:
+        if self.value is None or other.value is None:
             raise ValueError("Cannot add unknown dimension")
         return self.value + other.value
+
+    def __mul__(self, other):
+        if self.value is None or other.value is None:
+            raise ValueError("Cannot multiply unknown dimension")
+        return Dim.of(self.value * other.value)
 
 
 class StaticShape(tuple):
@@ -114,6 +119,24 @@ class StaticShape(tuple):
         else:
             return StaticShape.from_tuple(
                 d for d, keep in zip(self, squeezed) if keep)
+
+    def flatten_axis(self, keep_axis: int = -1):
+        n = len(self)
+        validate.is_one_of("keep_axis", keep_axis, (0, -n, n - 1, -1))
+        pos_idx = keep_axis if keep_axis >= 0 else n + keep_axis
+
+        flattened_dim = Dim.of(1)
+        for idx, dim in enumerate(self):
+            if idx != pos_idx:
+                if self[idx].is_unknown() or flattened_dim.is_unknown():
+                    flattened_dim = Dim.unknown()
+                else:
+                    flattened_dim *= self[idx]
+
+        if pos_idx == 0:
+            return StaticShape(self[keep_axis], flattened_dim)
+        else:
+            return StaticShape(flattened_dim, self[keep_axis])
 
     @staticmethod
     def zip_dimensions(a, b):
@@ -172,5 +195,5 @@ class StaticShape(tuple):
 
     def transpose(self, *args):
         perm = args[0] if len(args) == 1 else tuple(args)
-        validate.is_permutation(perm, len(self))
+        validate.is_permutation("perm", perm, len(self))
         return StaticShape(*(self[perm[i]] for i in range(len(perm))))
