@@ -9,9 +9,11 @@ from chains.core.static_shape import StaticShape
 
 def test_save_var_back_and_forth():
     to_save = np.array(50.0)
-    var = Var(initializer=ConstantInitializer(to_save),
-              shape=StaticShape.from_tuple(to_save.shape),
-              dtype=to_save.dtype)
+    var = Var(
+        initializer=ConstantInitializer(to_save),
+        shape=StaticShape.from_tuple(to_save.shape),
+        dtype=to_save.dtype,
+    )
     var.initialize_if_needed()
     bak = saver.save(var)
     var.output = np.array(0.0)
@@ -23,9 +25,11 @@ def test_save_var_back_and_forth():
 
 def test_save_var_back_and_forth2():
     to_save = 50.0
-    var = Var(initializer=ConstantInitializer(to_save),
-              shape=StaticShape.from_tuple(()),
-              dtype='float')
+    var = Var(
+        initializer=ConstantInitializer(to_save),
+        shape=StaticShape.from_tuple(()),
+        dtype="float",
+    )
     var.initialize_if_needed()
     bak = saver.save(var)
     var.output = np.array(0.0)

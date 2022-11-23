@@ -8,34 +8,33 @@ from chains.core import metrics as m
 from chains.core import node_factory as f, initializers as init
 from chains.core import node_factory as nf
 from chains.core import optimizers as gd, graph as g
-from chains.core.shape import Dim
+from chains.core.static_shape import Dim
 from coursera.utils import plot_costs
 
 ITERATIONS_UNIT = 100
 
 
 class LogisticRegressionModel:
-
     def __init__(self, features_count):
 
         self.m = Dim.unknown()  # Number of examples
         self.n = features_count  # Number of features
 
-        self.W = f.var('W', init.ZeroInitializer(), shape=(1, self.n))
-        self.b = f.var('b', init.ZeroInitializer(), shape=(1, 1))
+        self.W = f.var("W", init.ZeroInitializer(), shape=(1, self.n))
+        self.b = f.var("b", init.ZeroInitializer(), shape=(1, 1))
         self.X = f.placeholder(shape=(self.n, self.m))
         self.Y = f.placeholder(shape=(1, self.m))
 
-        self.logits = nf.fully_connected(self.X, self.W, self.b,
-                                         first_layer=True)
+        self.logits = nf.fully_connected(self.X, self.W, self.b, first_layer=True)
         self.loss = f.sigmoid_cross_entropy(self.logits, self.Y)
         self.predictions = f.is_greater_than(f.sigmoid(self.logits), 0.5)
 
         self.cost_graph = g.Graph(self.loss)
         self.prediction_graph = g.Graph(self.predictions)
 
-    def train(self, x_train, y_train, num_iterations=2000, learning_rate=0.5,
-              print_cost=True):
+    def train(
+        self, x_train, y_train, num_iterations=2000, learning_rate=0.5, print_cost=True
+    ):
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
         optimizer = gd.GradientDescentOptimizer(learning_rate)
@@ -58,7 +57,13 @@ class LogisticRegressionModel:
 
 
 if __name__ == "__main__":
-    train_set_x_orig, train_set_y, test_set_x_orig, test_set_y, classes = cs.load_dataset()
+    (
+        train_set_x_orig,
+        train_set_y,
+        test_set_x_orig,
+        test_set_y,
+        classes,
+    ) = cs.load_dataset()
 
     print("===== Data set exploration =====")
     print("train_set_x_orig.shape=", train_set_x_orig.shape)
@@ -71,7 +76,7 @@ if __name__ == "__main__":
     im = plt.imshow(train_set_x_orig[index])
     plt.show()
     label = train_set_y[:, index]  # It's a row vector
-    label_class = classes[np.asscalar(label)].decode("utf-8")
+    label_class = classes[label.item()].decode("utf-8")
     print(f"y = {label}, it's a '{label_class}' picture.")
 
     m_train = train_set_x_orig.shape[0]
@@ -85,10 +90,8 @@ if __name__ == "__main__":
 
     print("==== Pre-processing ====")
 
-    train_set_x_flatten = train_set_x_orig.reshape(train_set_x_orig.shape[0],
-                                                   -1).T
-    test_set_x_flatten = test_set_x_orig.reshape(test_set_x_orig.shape[0],
-                                                 -1).T
+    train_set_x_flatten = train_set_x_orig.reshape(train_set_x_orig.shape[0], -1).T
+    test_set_x_flatten = test_set_x_orig.reshape(test_set_x_orig.shape[0], -1).T
 
     print("train_set_x_flatten shape: ", train_set_x_flatten.shape)
     print("train_set_y shape: ", train_set_y.shape)
@@ -96,7 +99,7 @@ if __name__ == "__main__":
     print("test_set_y shape: ", test_set_y.shape)
 
     # Normalize
-    train_set_x = np.array(train_set_x_flatten / 255., dtype=np.float32)
+    train_set_x = np.array(train_set_x_flatten / 255.0, dtype=np.float32)
     test_set_x = np.array(test_set_x_flatten / 255, dtype=np.float32)
 
     print("=== Train ===")
@@ -107,8 +110,9 @@ if __name__ == "__main__":
     train_set_y = train_set_y.astype(np.float32)
 
     start_time = time.time()
-    costs = model.train(train_set_x, train_set_y, learning_rate=lr,
-                        num_iterations=2000, print_cost=True)
+    costs = model.train(
+        train_set_x, train_set_y, learning_rate=lr, num_iterations=2000, print_cost=True
+    )
     print("training time = ", time.time() - start_time)
 
     plot_costs(costs, unit=ITERATIONS_UNIT, learning_rate=lr)
@@ -121,17 +125,20 @@ if __name__ == "__main__":
 
     # Analyze
     # Example of a picture that was wrongly classified.
-    errors = (index for index, (p, r) in
-              enumerate(zip(test_predictions[0, :], test_set_y[0, :])) if
-              p != r)
+    errors = (
+        index
+        for index, (p, r) in enumerate(zip(test_predictions[0, :], test_set_y[0, :]))
+        if p != r
+    )
 
     index = next(errors)
 
     label_prediction = test_set_y[0, index]
-    class_prediction = classes[int(test_predictions[0, index])].decode('utf-8')
+    class_prediction = classes[int(test_predictions[0, index])].decode("utf-8")
     print(
         f"y = {label_prediction}, you predicted that it is a "
-        f"{class_prediction} picture.")
+        f"{class_prediction} picture."
+    )
 
     plt.imshow(test_set_x[:, index].reshape((num_px, num_px, 3)))
     plt.show()

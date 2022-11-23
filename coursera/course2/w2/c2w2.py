@@ -20,7 +20,6 @@ from coursera.utils import plot_costs
 # with shuffled_range = np.random.permutation(cnt_examples) in training.py
 # but results are similar enough without that change
 class CostListener(TrainListener):
-
     def __init__(self):
         env.seed(3)
         self.costs = []
@@ -49,8 +48,10 @@ def model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(5), ReLu(),
-                Dense(2), ReLu(),
+                Dense(5),
+                ReLu(),
+                Dense(2),
+                ReLu(),
                 Dense(1),
             ],
             classifier=SigmoidBinaryClassifier(),
@@ -61,8 +62,13 @@ def model(cnt_features):
 def show_image(i, im_classes, x, y):
     plt.imshow(x[i])
     plt.show()
-    print("y = " + str(y[0, i]) + ". It's a " + im_classes[y[0, i]].decode(
-        "utf-8") + " picture.")
+    print(
+        "y = "
+        + str(y[0, i])
+        + ". It's a "
+        + im_classes[y[0, i]].decode("utf-8")
+        + " picture."
+    )
 
 
 def plot_boundary(reg_name, m, xt, yt):
@@ -74,14 +80,14 @@ def plot_boundary(reg_name, m, xt, yt):
 
 
 if __name__ == "__main__":
-    plt.rcParams['figure.figsize'] = (7.0, 4.0)  # set default size of plots
-    plt.rcParams['image.interpolation'] = 'nearest'
-    plt.rcParams['image.cmap'] = 'gray'
+    plt.rcParams["figure.figsize"] = (7.0, 4.0)  # set default size of plots
+    plt.rcParams["image.interpolation"] = "nearest"
+    plt.rcParams["image.cmap"] = "gray"
 
     # load image dataset: blue/red dots in circles
     train_x, train_y = load_dataset()
-    train_x = train_x.astype('float32')
-    train_y = train_y.astype('int16')
+    train_x = train_x.astype("float32")
+    train_y = train_y.astype("int16")
 
     m_train = train_x.shape[1]
     n = train_x.shape[0]
@@ -95,13 +101,12 @@ if __name__ == "__main__":
 
     for name, opt in optimizers.items():
         training = MiniBatchTraining(
-            batch_size=64,
-            optimizer=opt,
-            listener=CostListener()
+            batch_size=64, optimizer=opt, listener=CostListener()
         )
 
-        model.train(train_x.astype('float32'), train_y, epochs=10_000,
-                    training=training)
+        model.train(
+            train_x.astype("float32"), train_y, epochs=10_000, training=training
+        )
         train_predictions = model.predict(train_x)
         train_accuracy = m.accuracy(train_predictions, train_y)
         print(f"Train accuracy = {train_accuracy}%")

@@ -29,5 +29,7 @@ def test_argmax_invalid_arg():
     op = ArgMax(axis=4)
     with pytest.raises(ValueError) as ex:
         op.check_incoming_shapes(StaticShape.from_tuple(a.shape))
-    assert str(ex.value) == "axis is out of bounds of shape " \
-                            "(Dim.of(2), Dim.of(3)) got 4"
+    assert (
+        str(ex.value) == "axis is out of bounds of shape "
+        "(Dim.of(2), Dim.of(3)) got 4"
+    )

@@ -1,0 +1,15 @@
+name: chains-dev
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - blas[build=*mkl]
+  - h5py
+  - pytest
+  - tensorflow
+  - matplotlib
+  - scikit-learn
+  - pip
+  - pip:
+      - daz
+prefix: /home/jlinho/micromamba/envs/chains-dev

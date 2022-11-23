@@ -14,8 +14,8 @@ def plot_decision_boundary(model, X, y):
     Z = Z.reshape(xx.shape)
     # Plot the contour and training examples
     plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral)
-    plt.ylabel('x2')
-    plt.xlabel('x1')
+    plt.ylabel("x2")
+    plt.xlabel("x1")
     plt.scatter(X[0, :].ravel(), X[1, :].ravel(), c=y.ravel(), cmap=plt.cm.Spectral)
 
 
@@ -25,7 +25,7 @@ def load_planar_dataset():
     N = int(m / 2)  # number of points per class
     D = 2  # dimensionality
     X = np.zeros((m, D))  # data matrix where each row is a single example
-    Y = np.zeros((m, 1), dtype='uint8')  # labels vector (0 for red, 1 for blue)
+    Y = np.zeros((m, 1), dtype="uint8")  # labels vector (0 for red, 1 for blue)
     a = 4  # maximum ray of the flower
 
     for j in range(2):

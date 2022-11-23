@@ -5,7 +5,7 @@ import time
 from chains.core import metrics as m
 from chains.core import node_factory as f, initializers as init
 from chains.core import optimizers as gd, graph as g, env
-from chains.core.shape import Dim
+from chains.core.static_shape import Dim
 from coursera.course2.w1.reg_utils import *
 from coursera.utils import plot_costs
 
@@ -13,7 +13,6 @@ ITERATION_UNIT = 1_000
 
 
 class NNModel:
-
     def __init__(self, features_count, *, lambd=0, keep_prob=1):
         hidden_layers_sizes = [20, 3]
 
@@ -38,8 +37,9 @@ class NNModel:
         self.prediction_graph = g.Graph(predictions)
 
     @staticmethod
-    def layers(features_matrix, weight_matrices, bias_matrices,
-               layers_count, keep_prob=1):
+    def layers(
+        features_matrix, weight_matrices, bias_matrices, layers_count, keep_prob=1
+    ):
         a = features_matrix
         weights_and_bias = list(zip(weight_matrices, bias_matrices))
         for l, (w, b) in enumerate(weights_and_bias[:-1]):
@@ -49,8 +49,7 @@ class NNModel:
             if 0 < keep_prob < 1:
                 a = f.dropout(keep_prob, a)
 
-        return NNModel.layer(a, weight_matrices[-1], bias_matrices[-1],
-                             layers_count)
+        return NNModel.layer(a, weight_matrices[-1], bias_matrices[-1], layers_count)
 
     @staticmethod
     def build_variables(features_count, hidden_layers_sizes):
@@ -59,15 +58,13 @@ class NNModel:
         bias_matrices = []
         i = 0
         for i, h in enumerate(hidden_layers_sizes):
-            w = f.var("W" + str(i + 1), init.XavierInitializer(),
-                      shape=(h, a_size))
+            w = f.var("W" + str(i + 1), init.XavierInitializer(), shape=(h, a_size))
             b = f.var("b" + str(i + 1), init.ZeroInitializer(), shape=(h, 1))
             weight_matrices.append(w)
             bias_matrices.append(b)
             a_size = h
 
-        w = f.var("W" + str(i + 2), init.XavierInitializer(),
-                  shape=(1, a_size))
+        w = f.var("W" + str(i + 2), init.XavierInitializer(), shape=(1, a_size))
         b = f.var("b" + str(i + 2), init.ZeroInitializer(), shape=(1, 1))
         weight_matrices.append(w)
         bias_matrices.append(b)
@@ -77,10 +74,15 @@ class NNModel:
     def layer(features, w, b, layer_num):
         return f.fully_connected(features, w, b, first_layer=(layer_num == 1))
 
-    def train(self, x_train, y_train, *,
-              num_iterations=30_000,
-              learning_rate=0.3,
-              print_cost=True):
+    def train(
+        self,
+        x_train,
+        y_train,
+        *,
+        num_iterations=30_000,
+        learning_rate=0.3,
+        print_cost=True,
+    ):
         env.seed(3)
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()
@@ -107,8 +109,13 @@ class NNModel:
 def show_image(i, im_classes, x, y):
     plt.imshow(x[i])
     plt.show()
-    print("y = " + str(y[0, i]) + ". It's a " + im_classes[y[0, i]].decode(
-        "utf-8") + " picture.")
+    print(
+        "y = "
+        + str(y[0, i])
+        + ". It's a "
+        + im_classes[y[0, i]].decode("utf-8")
+        + " picture."
+    )
 
 
 def plot_boundary(reg_name, m, xt, yt):
@@ -120,9 +127,9 @@ def plot_boundary(reg_name, m, xt, yt):
 
 
 if __name__ == "__main__":
-    plt.rcParams['figure.figsize'] = (7.0, 4.0)  # set default size of plots
-    plt.rcParams['image.interpolation'] = 'nearest'
-    plt.rcParams['image.cmap'] = 'gray'
+    plt.rcParams["figure.figsize"] = (7.0, 4.0)  # set default size of plots
+    plt.rcParams["image.interpolation"] = "nearest"
+    plt.rcParams["image.cmap"] = "gray"
 
     # load image dataset: blue/red dots in circles
     train_x, train_y, test_x, test_y = load_2D_dataset()

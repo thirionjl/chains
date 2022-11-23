@@ -22,17 +22,19 @@ def model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(25), BatchNorm(), ReLu(),
-                Dense(12), BatchNorm(), ReLu(),
+                Dense(25),
+                BatchNorm(),
+                ReLu(),
+                Dense(12),
+                BatchNorm(),
+                ReLu(),
                 Dense(6),
             ],
             classifier=SoftmaxClassifier(classes=6),
         ),
         training=MiniBatchTraining(
-            batch_size=32,
-            optimizer=AdamOptimizer(0.0001),
-            listener=CostListener()
-        )
+            batch_size=32, optimizer=AdamOptimizer(0.0001), listener=CostListener()
+        ),
     )
 
 
@@ -46,22 +48,21 @@ if __name__ == "__main__":
     import daz
 
     daz.set_ftz()
-    np.seterr(under='warn')
+    np.seterr(under="warn")
 
-    plt.rcParams['figure.figsize'] = (7.0, 4.0)
-    plt.rcParams['image.interpolation'] = 'nearest'
-    plt.rcParams['image.cmap'] = 'gray'
+    plt.rcParams["figure.figsize"] = (7.0, 4.0)
+    plt.rcParams["image.interpolation"] = "nearest"
+    plt.rcParams["image.cmap"] = "gray"
 
     # load image dataset: blue/red dots in circles
-    train_x_orig, train_y_orig, test_x_orig, test_y_orig, classes = \
-        load_dataset()
+    train_x_orig, train_y_orig, test_x_orig, test_y_orig, classes = load_dataset()
     # show_image(0, train_x_orig, train_y_orig)
 
     # Pre-processing
     train_x_flat = train_x_orig.reshape(train_x_orig.shape[0], -1).T
     test_x_flat = test_x_orig.reshape(test_x_orig.shape[0], -1).T
-    train_x = train_x_flat / 255.
-    test_x = test_x_flat / 255.
+    train_x = train_x_flat / 255.0
+    test_x = test_x_flat / 255.0
     train_y = one_hot(train_y_orig, 6)
     test_y = one_hot(test_y_orig, 6)
     m_train = train_x.shape[1]
@@ -71,8 +72,9 @@ if __name__ == "__main__":
     model = model(n)
 
     # Train
-    model.train(train_x.astype(dtype=np.float32),
-                train_y.astype(dtype=np.int16), epochs=1_000)
+    model.train(
+        train_x.astype(dtype=np.float32), train_y.astype(dtype=np.int16), epochs=1_000
+    )
 
     # Check accuracy
     train_predictions = model.predict(train_x)

@@ -56,8 +56,10 @@ def test_invalid_number_of_channels():
     with pytest.raises(ValueError) as ex:
         conv.check_incoming_shapes(features, filters, biases)
 
-    assert str(ex.value) == f"Number of channels should be the same " \
-        f"in features(3) and filters(4)"
+    assert (
+        str(ex.value)
+        == "Number of channels should be the same in features(3) and filters(4)"
+    )
 
 
 def test_invalid_bias():
@@ -70,8 +72,10 @@ def test_invalid_bias():
 
     with pytest.raises(ValueError) as ex:
         conv.check_incoming_shapes(features, filters, biases)
-    assert str(ex.value) == f"Number of bias should match number of filters " \
-        f"but got 17 and 16"
+    assert (
+        str(ex.value)
+        == "Number of bias should match number of filters but got 17 and 16"
+    )
 
 
 def test_compute_valid_conv():
@@ -81,29 +85,31 @@ def test_compute_valid_conv():
     filters = np.arange(24, dtype=np.float32).reshape(2, 2, 3, 2)
     biases = np.zeros((2, 1))
 
-    conv.check_incoming_shapes(StaticShape.of_tensor(features),
-                               StaticShape.of_tensor(filters),
-                               StaticShape.of_tensor(biases))
+    conv.check_incoming_shapes(
+        StaticShape.of_tensor(features),
+        StaticShape.of_tensor(filters),
+        StaticShape.of_tensor(biases),
+    )
     conv.compute(features, filters, biases)
     actual = conv.output
     assert actual.shape == (2, 2, 3, 2)
 
-    np.testing.assert_allclose(actual, np.array([[[[1624., 1726.],
-                                                   [2020., 2158.],
-                                                   [2416., 2590.]],
-
-                                                  [[3208., 3454.],
-                                                   [3604., 3886.],
-                                                   [4000., 4318.]]],
-
-                                                 [[[6376., 6910.],
-                                                   [6772., 7342.],
-                                                   [7168., 7774.]],
-
-                                                  [[7960., 8638.],
-                                                   [8356., 9070.],
-                                                   [8752., 9502.]]]],
-                                                dtype=np.float32))
+    np.testing.assert_allclose(
+        actual,
+        np.array(
+            [
+                [
+                    [[1624.0, 1726.0], [2020.0, 2158.0], [2416.0, 2590.0]],
+                    [[3208.0, 3454.0], [3604.0, 3886.0], [4000.0, 4318.0]],
+                ],
+                [
+                    [[6376.0, 6910.0], [6772.0, 7342.0], [7168.0, 7774.0]],
+                    [[7960.0, 8638.0], [8356.0, 9070.0], [8752.0, 9502.0]],
+                ],
+            ],
+            dtype=np.float32,
+        ),
+    )
 
     dfeatures, dfilters, dbias = conv.partials(np.ones(actual.shape))
 
@@ -111,53 +117,71 @@ def test_compute_valid_conv():
     assert dfilters.shape == filters.shape
     assert dbias.shape == biases.shape
 
-    np.testing.assert_allclose(dfeatures, np.array([[[[1., 5., 9.],
-                                                      [14., 22., 30.],
-                                                      [14., 22., 30.],
-                                                      [13., 17., 21.]],
+    np.testing.assert_allclose(
+        dfeatures,
+        np.array(
+            [
+                [
+                    [
+                        [1.0, 5.0, 9.0],
+                        [14.0, 22.0, 30.0],
+                        [14.0, 22.0, 30.0],
+                        [13.0, 17.0, 21.0],
+                    ],
+                    [
+                        [26.0, 34.0, 42.0],
+                        [76.0, 92.0, 108.0],
+                        [76.0, 92.0, 108.0],
+                        [50.0, 58.0, 66.0],
+                    ],
+                    [
+                        [25.0, 29.0, 33.0],
+                        [62.0, 70.0, 78.0],
+                        [62.0, 70.0, 78.0],
+                        [37.0, 41.0, 45.0],
+                    ],
+                ],
+                [
+                    [
+                        [1.0, 5.0, 9.0],
+                        [14.0, 22.0, 30.0],
+                        [14.0, 22.0, 30.0],
+                        [13.0, 17.0, 21.0],
+                    ],
+                    [
+                        [26.0, 34.0, 42.0],
+                        [76.0, 92.0, 108.0],
+                        [76.0, 92.0, 108.0],
+                        [50.0, 58.0, 66.0],
+                    ],
+                    [
+                        [25.0, 29.0, 33.0],
+                        [62.0, 70.0, 78.0],
+                        [62.0, 70.0, 78.0],
+                        [37.0, 41.0, 45.0],
+                    ],
+                ],
+            ],
+            dtype=np.float32,
+        ),
+    )
 
-                                                     [[26., 34., 42.],
-                                                      [76., 92., 108.],
-                                                      [76., 92., 108.],
-                                                      [50., 58., 66.]],
-
-                                                     [[25., 29., 33.],
-                                                      [62., 70., 78.],
-                                                      [62., 70., 78.],
-                                                      [37., 41., 45.]]],
-
-                                                    [[[1., 5., 9.],
-                                                      [14., 22., 30.],
-                                                      [14., 22., 30.],
-                                                      [13., 17., 21.]],
-
-                                                     [[26., 34., 42.],
-                                                      [76., 92., 108.],
-                                                      [76., 92., 108.],
-                                                      [50., 58., 66.]],
-
-                                                     [[25., 29., 33.],
-                                                      [62., 70., 78.],
-                                                      [62., 70., 78.],
-                                                      [37., 41., 45.]]]],
-                                                   dtype=np.float32))
-
-    np.testing.assert_allclose(dfilters, np.array([[[[324., 324.],
-                                                     [336., 336.],
-                                                     [348., 348.]],
-
-                                                    [[360., 360.],
-                                                     [372., 372.],
-                                                     [384., 384.]]],
-
-                                                   [[[468., 468.],
-                                                     [480., 480.],
-                                                     [492., 492.]],
-
-                                                    [[504., 504.],
-                                                     [516., 516.],
-                                                     [528., 528.]]]],
-                                                  dtype=np.float32))
+    np.testing.assert_allclose(
+        dfilters,
+        np.array(
+            [
+                [
+                    [[324.0, 324.0], [336.0, 336.0], [348.0, 348.0]],
+                    [[360.0, 360.0], [372.0, 372.0], [384.0, 384.0]],
+                ],
+                [
+                    [[468.0, 468.0], [480.0, 480.0], [492.0, 492.0]],
+                    [[504.0, 504.0], [516.0, 516.0], [528.0, 528.0]],
+                ],
+            ],
+            dtype=np.float32,
+        ),
+    )
 
 
 def test_compute_same_conv():
@@ -167,33 +191,29 @@ def test_compute_same_conv():
     filters = np.arange(9, dtype=np.float32).reshape(3, 3, 1, 1)
     biases = np.zeros((1, 1))
 
-    conv.check_incoming_shapes(StaticShape.of_tensor(features),
-                               StaticShape.of_tensor(filters),
-                               StaticShape.of_tensor(biases))
+    conv.check_incoming_shapes(
+        StaticShape.of_tensor(features),
+        StaticShape.of_tensor(filters),
+        StaticShape.of_tensor(biases),
+    )
     conv.compute(features, filters, biases)
     actual = conv.output
     assert actual.shape == (1, 4, 4, 1)
 
-    np.testing.assert_allclose(actual, np.array([[[[73.],
-                                                   [121.],
-                                                   [154.],
-                                                   [103.]],
-
-                                                  [[171.],
-                                                   [258.],
-                                                   [294.],
-                                                   [186.]],
-
-                                                  [[279.],
-                                                   [402.],
-                                                   [438.],
-                                                   [270.]],
-
-                                                  [[139.],
-                                                   [187.],
-                                                   [202.],
-                                                   [113.]]]],
-                                                dtype=np.float32))
+    np.testing.assert_allclose(
+        actual,
+        np.array(
+            [
+                [
+                    [[73.0], [121.0], [154.0], [103.0]],
+                    [[171.0], [258.0], [294.0], [186.0]],
+                    [[279.0], [402.0], [438.0], [270.0]],
+                    [[139.0], [187.0], [202.0], [113.0]],
+                ]
+            ],
+            dtype=np.float32,
+        ),
+    )
 
     dx, df, db = conv.partials(np.ones(actual.shape))
 
@@ -201,45 +221,32 @@ def test_compute_same_conv():
     assert df.shape == filters.shape
     assert db.shape == biases.shape
 
-    np.testing.assert_allclose(dx, np.array([[[[8.],
-                                               [15.],
-                                               [15.],
-                                               [12.]],
+    np.testing.assert_allclose(
+        dx,
+        np.array(
+            [
+                [
+                    [[8.0], [15.0], [15.0], [12.0]],
+                    [[21.0], [36.0], [36.0], [27.0]],
+                    [[21.0], [36.0], [36.0], [27.0]],
+                    [[20.0], [33.0], [33.0], [24.0]],
+                ]
+            ],
+            dtype=np.float32,
+        ),
+    )
 
-                                              [[21.],
-                                               [36.],
-                                               [36.],
-                                               [27.]],
-
-                                              [[21.],
-                                               [36.],
-                                               [36.],
-                                               [27.]],
-
-                                              [[20.],
-                                               [33.],
-                                               [33.],
-                                               [24.]]]],
-                                            dtype=np.float32))
-
-    np.testing.assert_allclose(df, np.array([[[[45.]],
-
-                                              [[66.]],
-
-                                              [[54.]]],
-
-                                             [[[84.]],
-
-                                              [[120.]],
-
-                                              [[96.]]],
-
-                                             [[[81.]],
-
-                                              [[114.]],
-
-                                              [[90.]]]],
-                                            dtype=np.float32))
+    np.testing.assert_allclose(
+        df,
+        np.array(
+            [
+                [[[45.0]], [[66.0]], [[54.0]]],
+                [[[84.0]], [[120.0]], [[96.0]]],
+                [[[81.0]], [[114.0]], [[90.0]]],
+            ],
+            dtype=np.float32,
+        ),
+    )
 
 
 def test_compute_strided_conv():
@@ -249,18 +256,18 @@ def test_compute_strided_conv():
     filters = np.arange(4, dtype=np.float32).reshape(2, 2, 1, 1)
     biases = np.zeros((1, 1))
 
-    conv.check_incoming_shapes(StaticShape.of_tensor(features),
-                               StaticShape.of_tensor(filters),
-                               StaticShape.of_tensor(biases))
+    conv.check_incoming_shapes(
+        StaticShape.of_tensor(features),
+        StaticShape.of_tensor(filters),
+        StaticShape.of_tensor(biases),
+    )
     conv.compute(features, filters, biases)
     actual = conv.output
     assert actual.shape == (1, 2, 2, 1)
 
-    np.testing.assert_allclose(actual, np.array([[[[24.],
-                                                   [36.]],
-
-                                                  [[72.],
-                                                   [84.]]]], dtype=np.float32))
+    np.testing.assert_allclose(
+        actual, np.array([[[[24.0], [36.0]], [[72.0], [84.0]]]], dtype=np.float32)
+    )
 
     dx, df, db = conv.partials(np.ones(actual.shape))
 
@@ -268,33 +275,24 @@ def test_compute_strided_conv():
     assert df.shape == filters.shape
     assert db.shape == biases.shape
 
-    np.testing.assert_allclose(dx, np.array([[[[0.],
-                                               [1.],
-                                               [0.],
-                                               [1.]],
+    np.testing.assert_allclose(
+        dx,
+        np.array(
+            [
+                [
+                    [[0.0], [1.0], [0.0], [1.0]],
+                    [[2.0], [3.0], [2.0], [3.0]],
+                    [[0.0], [1.0], [0.0], [1.0]],
+                    [[2.0], [3.0], [2.0], [3.0]],
+                ]
+            ],
+            dtype=np.float32,
+        ),
+    )
 
-                                              [[2.],
-                                               [3.],
-                                               [2.],
-                                               [3.]],
-
-                                              [[0.],
-                                               [1.],
-                                               [0.],
-                                               [1.]],
-
-                                              [[2.],
-                                               [3.],
-                                               [2.],
-                                               [3.]]]], dtype=np.float32))
-
-    np.testing.assert_allclose(df, np.array([[[[20.]],
-
-                                              [[24.]]],
-
-                                             [[[36.]],
-
-                                              [[40.]]]], dtype=np.float32))
+    np.testing.assert_allclose(
+        df, np.array([[[[20.0]], [[24.0]]], [[[36.0]], [[40.0]]]], dtype=np.float32)
+    )
 
 
 def _sample_conv2d_case_no_stride():
@@ -303,8 +301,9 @@ def _sample_conv2d_case_no_stride():
     features = tf.Variable(np.arange(72, dtype=np.float32).reshape(2, 3, 4, 3))
     filters = tf.Variable(np.arange(24, dtype=np.float32).reshape(2, 2, 3, 2))
 
-    conv = tf.nn.conv2d(input=features, filter=filters, padding="VALID",
-                        strides=(1, 1, 1, 1))
+    conv = tf.nn.conv2d(
+        input=features, filter=filters, padding="VALID", strides=(1, 1, 1, 1)
+    )
     gd = tf.train.GradientDescentOptimizer(learning_rate=0.1)
     grads_and_vars = gd.compute_gradients(conv)
 
@@ -323,8 +322,9 @@ def _sample_conv2d_strided():
     features = tf.Variable(np.arange(16, dtype=np.float32).reshape(1, 4, 4, 1))
     filters = tf.Variable(np.arange(4, dtype=np.float32).reshape(2, 2, 1, 1))
 
-    conv = tf.nn.conv2d(input=features, filter=filters, padding="VALID",
-                        strides=(1, 2, 2, 1))
+    conv = tf.nn.conv2d(
+        input=features, filter=filters, padding="VALID", strides=(1, 2, 2, 1)
+    )
     gd = tf.train.GradientDescentOptimizer(learning_rate=0.1)
     grads_and_vars = gd.compute_gradients(conv)
 

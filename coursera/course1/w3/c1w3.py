@@ -4,7 +4,7 @@ import chains.core.node_factory
 from chains.core import node_factory as f, initializers as init
 from chains.core import optimizers as gd, graph as g, env
 from chains.core.metrics import accuracy
-from chains.core.shape import Dim
+from chains.core.static_shape import Dim
 from coursera.course1.w3.planar_utils import load_planar_dataset
 from coursera.course1.w3.planar_utils import plot_decision_boundary
 
@@ -12,7 +12,6 @@ ITERATION_UNIT = 100
 
 
 class ShallowNNModel:
-
     def __init__(self, features_count, hidden_layers_size):
         # Number of examples
         self.m = Dim.unknown()
@@ -32,12 +31,11 @@ class ShallowNNModel:
         self.Y = f.placeholder(shape=(1, self.m))
 
         # Nodes
-        lin_1 = chains.core.node_factory.fully_connected(self.X, self.W1,
-                                                         self.b1,
-                                                         first_layer=True)
+        lin_1 = chains.core.node_factory.fully_connected(
+            self.X, self.W1, self.b1, first_layer=True
+        )
         act_1 = f.tanh(lin_1)
-        lin_2 = chains.core.node_factory.fully_connected(act_1, self.W2,
-                                                         self.b2)
+        lin_2 = chains.core.node_factory.fully_connected(act_1, self.W2, self.b2)
         loss = f.sigmoid_cross_entropy(lin_2, self.Y)
         predictions = f.is_greater_than(f.sigmoid(lin_2), 0.5)
 
@@ -45,8 +43,14 @@ class ShallowNNModel:
         self.cost_graph = g.Graph(loss)
         self.prediction_graph = g.Graph(predictions)
 
-    def train(self, x_train, y_train, num_iterations=10_000, learning_rate=1.2,
-              print_cost=False):
+    def train(
+        self,
+        x_train,
+        y_train,
+        num_iterations=10_000,
+        learning_rate=1.2,
+        print_cost=False,
+    ):
         env.seed(3)
         self.cost_graph.placeholders = {self.X: x_train, self.Y: y_train}
         self.cost_graph.initialize_variables()

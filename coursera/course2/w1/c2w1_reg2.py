@@ -19,7 +19,6 @@ Dense.default_weight_initializer = XavierInitializer()
 
 
 class CostListener(TrainListener):
-
     def __init__(self):
         self.costs = []
         self.start_time = None
@@ -52,13 +51,15 @@ def default_model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(20), ReLu(),
-                Dense(3), ReLu(),
+                Dense(20),
+                ReLu(),
+                Dense(3),
+                ReLu(),
                 Dense(1),
             ],
             classifier=SigmoidBinaryClassifier(),
         ),
-        training=batch_gd
+        training=batch_gd,
     )
 
 
@@ -67,14 +68,16 @@ def l2reg_model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(20), ReLu(),
-                Dense(3), ReLu(),
+                Dense(20),
+                ReLu(),
+                Dense(3),
+                ReLu(),
                 Dense(1),
             ],
             classifier=SigmoidBinaryClassifier(),
-            regularizer=L2Regularizer(lambd=0.7)
+            regularizer=L2Regularizer(lambd=0.7),
         ),
-        training=batch_gd
+        training=batch_gd,
     )
 
 
@@ -83,21 +86,30 @@ def dropout_model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(20), ReLu(), Dropout(0.86),
-                Dense(3), ReLu(), Dropout(0.86),
+                Dense(20),
+                ReLu(),
+                Dropout(0.86),
+                Dense(3),
+                ReLu(),
+                Dropout(0.86),
                 Dense(1),
             ],
             classifier=SigmoidBinaryClassifier(),
         ),
-        training=batch_gd
+        training=batch_gd,
     )
 
 
 def show_image(i, im_classes, x, y):
     plt.imshow(x[i])
     plt.show()
-    print("y = " + str(y[0, i]) + ". It's a " + im_classes[y[0, i]].decode(
-        "utf-8") + " picture.")
+    print(
+        "y = "
+        + str(y[0, i])
+        + ". It's a "
+        + im_classes[y[0, i]].decode("utf-8")
+        + " picture."
+    )
 
 
 def plot_boundary(reg_name, m, xt, yt):
@@ -109,9 +121,9 @@ def plot_boundary(reg_name, m, xt, yt):
 
 
 if __name__ == "__main__":
-    plt.rcParams['figure.figsize'] = (7.0, 4.0)  # set default size of plots
-    plt.rcParams['image.interpolation'] = 'nearest'
-    plt.rcParams['image.cmap'] = 'gray'
+    plt.rcParams["figure.figsize"] = (7.0, 4.0)  # set default size of plots
+    plt.rcParams["image.interpolation"] = "nearest"
+    plt.rcParams["image.cmap"] = "gray"
 
     # load image dataset: blue/red dots in circles
     train_x, train_y, test_x, test_y = load_2D_dataset()

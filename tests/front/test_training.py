@@ -3,8 +3,8 @@ from typing import Dict
 import numpy as np
 
 from chains.core import env
+from chains.core import node_factory as nf
 from chains.core.graph import Graph, Node
-from chains.core.node_factory import *
 from chains.core.optimizers import Optimizer
 from chains.core.tensor import Tensor
 from chains.front.training import BatchTraining
@@ -12,7 +12,6 @@ from chains.front.training import MiniBatchTraining, TrainListener
 
 
 class DummyListener(TrainListener):
-
     def __init__(self):
         self.calls = []
 
@@ -33,7 +32,6 @@ class DummyListener(TrainListener):
 
 
 class DummyOptimizer(Optimizer):
-
     def __init__(self, cost):
         self.cost = cost
 
@@ -63,8 +61,7 @@ def test_slice():
 
 
 def test_batch_slices():
-    slices = MiniBatchTraining._batch_slices(m=5, ndim=3, batch_size=2,
-                                             axis=-1)
+    slices = MiniBatchTraining._batch_slices(m=5, ndim=3, batch_size=2, axis=-1)
 
     assert len(slices) == 3
     assert slices[0] == (slice(None), slice(None), slice(0, 2))
@@ -80,7 +77,7 @@ def test_batch_slices():
 
 def test_mini_batch_training():
     env.seed(1)
-    g = Graph(constant(8))
+    g = Graph(nf.constant(8))
     x = np.arange(5)
     y = np.arange(5)
     feed = DummyFeedMethod()
@@ -125,7 +122,7 @@ def assert_pair(p, x, y):
 
 
 def test_batch_training():
-    g = Graph(constant(8))
+    g = Graph(nf.constant(8))
     x = np.arange(5)
     y = np.arange(5)
     feed = DummyFeedMethod()
