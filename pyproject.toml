@@ -5,12 +5,14 @@ description = "Simple DeepLearning library created for teaching purpose"
 authors = ["Jean-Luc Thirion <thirion.jl@gmail.com>"]
 license = "MIT"
 readme = "README.rst"
-packages = [{include = "chains", from = "src"}]
+packages = [{ include = "chains", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.9 <3.11"
 h5py = "^3.7.0"
-numpy = "1.23.5"
+numpy = "^1.23.5"
+graphviz = "^2.50.0"
+texttable = "^1.6.4"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.2.0"

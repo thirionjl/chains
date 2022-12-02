@@ -3,7 +3,7 @@ from typing import Iterable
 
 import numpy as np
 
-from ..core import tensor
+from . import nd_typing
 
 
 def is_not_blank(name: str, value: str):
@@ -19,7 +19,7 @@ def is_not_none(name: str, value: object):
 def is_one_of(name: str, value: object, legal_values: Iterable):
     if value not in legal_values:
         raise ValueError(
-            f"Parameter {name} should be one of {legal_values}, " f"but got {value}"
+            f"Parameter {name} should be one of {legal_values} but got {value}"
         )
 
 
@@ -45,10 +45,8 @@ def is_callable(name: str, value: object):
 
 
 def is_tensor(name: str, value: object):
-    if not tensor.is_tensor(name):
-        raise ValueError(
-            f"Parameter {name} must be a tensor, but got {type(value)}"
-        )
+    if not nd_typing.is_ndarray_like(value):
+        raise ValueError(f"Parameter {name} must be a tensor, but got {type(value)}")
 
 
 def is_strictly_greater_than(name: str, value: int, low: int):

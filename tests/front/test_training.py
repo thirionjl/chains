@@ -6,7 +6,7 @@ from chains.core import env
 from chains.core import node_factory as nf
 from chains.core.graph import Graph, Node
 from chains.core.optimizers import Optimizer
-from chains.core.tensor import Tensor
+from chains.utils.nd_typing import NdArrayLike
 from chains.front.training import BatchTraining
 from chains.front.training import MiniBatchTraining, TrainListener
 
@@ -41,7 +41,7 @@ class DummyOptimizer(Optimizer):
     def run(self):
         self.cost -= 1
 
-    def apply_gradients(self, gradient: Dict[Node, Tensor]):
+    def apply_gradients(self, gradient: Dict[Node, NdArrayLike]):
         pass
 
 

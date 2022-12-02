@@ -2,6 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io
 
+from chains.core.graph import Graph
+from chains.tools import graphviz_exporter, text_exporter
+
+
+def display_graph(graph: Graph):
+    gz = graphviz_exporter.export(graph)
+    gz.view()
+    print(text_exporter.export(graph))
+
 
 def plot_decision_boundary(model, X, y):
     # Set min and max values and give it some padding

@@ -2,8 +2,8 @@ import numpy as np
 
 from .ops import BinaryOp
 from .ops_activation import Sigmoid, SoftMax
-from .static_shape import StaticShape
-from .tensor import Tensor
+from .shape import Shape
+from chains.utils.nd_typing import NdArrayLike
 
 __all__ = [
     "SigmoidCrossEntropyWithLogits",
@@ -18,7 +18,7 @@ class SigmoidCrossEntropyWithLogits(BinaryOp):
         super().__init__()
         self.activations = None
 
-    def compute(self, x: Tensor, y: Tensor):
+    def compute(self, x: NdArrayLike, y: NdArrayLike):
         super().compute(x, y)
         self.output = np.fmax(x, 0) - x * y + np.log(1 + np.exp(-np.abs(x)))
         self.activations = Sigmoid.sigmoid(self.x)
@@ -26,14 +26,14 @@ class SigmoidCrossEntropyWithLogits(BinaryOp):
     def partials(self, d_output):
         return (self.activations - self.y) * d_output, 0  # Do not use dLabels
 
-    def check_incoming_shapes(self, x: StaticShape, y: StaticShape):
+    def check_incoming_shapes(self, x: Shape, y: Shape):
         if x != y:
             raise ValueError(
                 f"SigmoidCrossEntropy requires operands have same shape, "
                 f"got {x} and {y}"
             )
 
-    def compute_out_shape(self, x: StaticShape, y: StaticShape) -> StaticShape:
+    def compute_out_shape(self, x: Shape, y: Shape) -> Shape:
         return x
 
 
@@ -42,7 +42,7 @@ class SigmoidCrossEntropy(SigmoidCrossEntropyWithLogits):
         super().__init__()
         self.batch_size = None
 
-    def compute(self, x: Tensor, y: Tensor):
+    def compute(self, x: NdArrayLike, y: NdArrayLike):
         super().compute(x, y)
         self.batch_size = self.output.size
         self.output = np.mean(self.output)
@@ -51,8 +51,8 @@ class SigmoidCrossEntropy(SigmoidCrossEntropyWithLogits):
         d_logits = super().partials(d_output)[0]
         return d_logits / self.batch_size, 0  # Do not use dLabels
 
-    def compute_out_shape(self, x: StaticShape, y: StaticShape) -> StaticShape:
-        return StaticShape.scalar()
+    def compute_out_shape(self, x: Shape, y: Shape) -> Shape:
+        return Shape.scalar()
 
 
 class SoftMaxCrossEntropyWithLogits(BinaryOp):
@@ -63,7 +63,7 @@ class SoftMaxCrossEntropyWithLogits(BinaryOp):
         self.keepdims = keepdims
         self.epsilon = epsilon
 
-    def compute(self, x: Tensor, y: Tensor):
+    def compute(self, x: NdArrayLike, y: NdArrayLike):
         super().compute(x, y)
         self.activations = SoftMax.softmax(x, self.class_axis)
 
@@ -76,14 +76,14 @@ class SoftMaxCrossEntropyWithLogits(BinaryOp):
     def partials(self, d_output):
         return (self.activations - self.y) * d_output, 0  # Do not use dLabels
 
-    def check_incoming_shapes(self, x: StaticShape, y: StaticShape):
+    def check_incoming_shapes(self, x: Shape, y: Shape):
         if x != y:
             raise ValueError(
                 f"SoftMaxCrossEntropy requires operand have same "
                 f"shape, got {x} and {y}"
             )
 
-    def compute_out_shape(self, x: StaticShape, y: StaticShape) -> StaticShape:
+    def compute_out_shape(self, x: Shape, y: Shape) -> Shape:
         return x.reduce_along_axis(axis=self.class_axis, keep_dims=self.keepdims)
 
 
@@ -92,7 +92,7 @@ class SoftMaxCrossEntropy(SoftMaxCrossEntropyWithLogits):
         super().__init__(class_axis=class_axis, keepdims=False)
         self.batch_size = None
 
-    def compute(self, x: Tensor, y: Tensor):
+    def compute(self, x: NdArrayLike, y: NdArrayLike):
         super().compute(x, y)
         self.batch_size = self.output.size
         self.output = np.mean(self.output)
@@ -101,5 +101,5 @@ class SoftMaxCrossEntropy(SoftMaxCrossEntropyWithLogits):
         d_logits = super().partials(d_output)[0]
         return d_logits / self.batch_size, 0  # Do not use dLabels
 
-    def compute_out_shape(self, x: StaticShape, y: StaticShape) -> StaticShape:
-        return StaticShape.scalar()
+    def compute_out_shape(self, x: Shape, y: Shape) -> Shape:
+        return Shape.scalar()

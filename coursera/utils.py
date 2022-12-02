@@ -6,7 +6,7 @@ import numpy as np
 
 def plot_costs(costs: Iterable[float], *, unit: int, learning_rate: float):
     """
-    Plots the a cost graph as a function of the iteration number
+    Plots the cost graph as a function of the iteration number
 
     :param costs: An array of cost values
     :param unit:  The number of iterations between 2 cost values

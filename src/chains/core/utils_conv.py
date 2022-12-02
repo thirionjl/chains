@@ -1,48 +1,47 @@
 from collections.abc import Sequence
-from typing import Union, Iterable, Protocol
+from typing import TypeVar
 
 import numpy as np
 from numpy import ndarray
 
-from .static_shape import StaticShape
-from .tensor import Tensor, Shape
+from chains.utils.nd_typing import NdArrayLike, NdShape, NdArray
+from .shape import Shape
 from ..utils import validate
+
+T = TypeVar("T", bound=ndarray | Shape)
 
 
 class ConvFormat:
-    Transposable = Union[np.ndarray, StaticShape]
-    Perm = Sequence[int]
-
-    def __init__(self, features_perm: Perm, filters_perm: Perm):
+    def __init__(self, features_perm: Sequence[int], filters_perm: Sequence[int]):
         validate.is_permutation(features_perm, 4)
         validate.is_permutation(filters_perm, 4)
         self.features_perm = features_perm
         self.filters_perm = filters_perm
 
-    def nchw(self, a: Transposable) -> Transposable:
-        return a.transpose(self.features_perm)
+    def nchw(self, a: T) -> T:
+        return a.transpose(self.features_perm)  # type: ignore
 
-    def nchw_inv(self, a: Transposable) -> Transposable:
-        return a.transpose(self._inverse_feature_perm())
+    def nchw_inv(self, a: T) -> T:
+        return a.transpose(self._inverse_feature_perm())  # type: ignore
 
-    def dchw(self, f: Transposable) -> Transposable:
-        return f.transpose(self.filters_perm)
+    def dchw(self, f: T) -> T:
+        return f.transpose(self.filters_perm)  # type: ignore
 
-    def dchw_inv(self, f: Transposable) -> Transposable:
-        return f.transpose(self._inverse_filter_perm())
+    def dchw_inv(self, f: T) -> T:
+        return f.transpose(self._inverse_filter_perm())  # type: ignore
 
-    def _inverse_filter_perm(self) -> Perm:
+    def _inverse_filter_perm(self) -> Sequence[int]:
         return self.inverse_perm(self.filters_perm)
 
-    def _inverse_feature_perm(self) -> Perm:
+    def _inverse_feature_perm(self) -> Sequence[int]:
         return ConvFormat.inverse_perm(self.features_perm)
 
     @staticmethod
-    def inverse_perm(perm: Perm):
+    def inverse_perm(perm: Sequence[int]):
         return np.argsort(perm)
 
     @staticmethod
-    def apply_perm(f, perm: Perm):
+    def apply_perm(f, perm: Sequence[int]):
         return tuple(f[perm[i]] for i in range(len(perm)))
 
 
@@ -52,7 +51,10 @@ TensorFlowNHWC = ConvFormat((0, 3, 1, 2), (3, 2, 0, 1))
 
 
 def im2col(
-        activations: Tensor, filters_shape: Shape, padding: int = 0, stride: int = 1
+    activations: NdArray,
+    filters_shape: NdShape,
+    padding: int = 0,
+    stride: int = 1,
 ):
     """
     Return the 4-D activations tensor as a 2-D tensor XC
@@ -83,11 +85,11 @@ def im2col(
 
 
 def col2im(
-        cols: ndarray,
-        activations_shape: Shape,
-        filters_shape: Shape,
-        padding: int = 0,
-        stride: int = 1,
+    cols: ndarray,
+    activations_shape: NdShape,
+    filters_shape: NdShape,
+    padding: int = 0,
+    stride: int = 1,
 ):
     """
     Return a 4-D activations tensor from the im2col tensor.
@@ -101,9 +103,9 @@ def col2im(
     activations_padded = np.zeros((m, c, h_padded, w_padded), dtype=cols.dtype)
 
     k, i, j = _im2col_indices(nh, nw, fh, fw, c, padding, stride)
-    cols_reshaped = cols.reshape(shape=(c * fh * fw, m, -1))
+    cols_reshaped = cols.reshape(c * fh * fw, m, -1)
     cols_reshaped = cols_reshaped.transpose(1, 0, 2)
-    np.add.at(activations_padded, (slice(None), k, i, j), cols_reshaped)
+    np.add.at(activations_padded, (slice(None), k, i, j), cols_reshaped)  # type: ignore
 
     if padding == 0:
         out = activations_padded
@@ -114,7 +116,7 @@ def col2im(
     return out
 
 
-def pad(activations: Tensor, padding: int = 0):
+def pad(activations: NdArrayLike, padding: int = 0):
     if padding == 0:
         return activations
     else:
@@ -122,7 +124,9 @@ def pad(activations: Tensor, padding: int = 0):
         return np.pad(activations, ((0, 0), (0, 0), (p, p), (p, p)), mode="constant")
 
 
-def _all_dimensions(activations_shape: Shape, filters_shape: Shape):
+def _all_dimensions(
+    activations_shape: NdShape, filters_shape: NdShape
+) -> tuple[int, int, int, int, int, int, int]:
     if len(activations_shape) != 4:
         raise ValueError(
             f"activations_shape should be 4 dimensional "
@@ -148,7 +152,9 @@ def _all_dimensions(activations_shape: Shape, filters_shape: Shape):
 
 # Idea taken from:
 # https://github.com/wiseodd/hipsternet/blob/master/hipsternet/im2col.py
-def _im2col_indices(nh, nw, fh, fw, c, padding=0, stride=1):
+def _im2col_indices(
+    nh, nw, fh, fw, c, padding=0, stride=1
+) -> tuple[ndarray, ndarray, ndarray]:
     out_h, out_w = clip_positions_count(nh, nw, fh, fw, padding, stride)
 
     i_rows = np.tile(np.repeat(np.arange(fh), fw), c)
@@ -163,7 +169,9 @@ def _im2col_indices(nh, nw, fh, fw, c, padding=0, stride=1):
     return k.astype(int), i.astype(int), j.astype(int)
 
 
-def clip_positions_count(nh, nw, fh, fw, padding=0, stride=1):
+def clip_positions_count(
+    nh: int, nw: int, fh: int, fw: int, padding=0, stride=1
+) -> tuple[int, int]:
     """
     Counts the number of positions where the filters can be applied on
     activations.
@@ -194,11 +202,11 @@ def clip_positions_count(nh, nw, fh, fw, padding=0, stride=1):
     return height // stride + 1, width // stride + 1
 
 
-def im2col_filters(filters: Tensor):
+def im2col_filters(filters: ndarray) -> ndarray:
     """Returns 4-D filters reshape as a 2-D matrix (d, c * fh * fw)"""
     d, c, fh, fw = filters.shape
     return filters.reshape(d, c * fh * fw)
 
 
-def col2im_filters(d_col_filters: Tensor, filters_shape: Shape):
+def col2im_filters(d_col_filters: ndarray, filters_shape: NdShape) -> ndarray:
     return d_col_filters.reshape(filters_shape)

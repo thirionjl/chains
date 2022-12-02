@@ -1,18 +1,16 @@
-# import packages
 import time
 
 import matplotlib.pyplot as plt
 
-from chains.core import env
-from chains.core import metrics as m
+import coursera.course2.w1.reg_utils as utils
+from chains.core import env, metrics
 from chains.core.initializers import XavierInitializer
 from chains.core.optimizers import GradientDescentOptimizer
 from chains.front.model import Model
 from chains.front.network import Dense, Sequence, ReLu, Dropout
 from chains.front.network import SigmoidBinaryClassifier, L2Regularizer
 from chains.front.training import TrainListener, BatchTraining
-from coursera.course2.w1.reg_utils import load_2D_dataset
-from coursera.course2.w1.reg_utils import plot_decision_boundary
+from chains.tools import text_exporter, graphviz_exporter
 from coursera.utils import plot_costs
 
 Dense.default_weight_initializer = XavierInitializer()
@@ -51,11 +49,11 @@ def default_model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(20),
-                ReLu(),
-                Dense(3),
-                ReLu(),
-                Dense(1),
+                Dense(20, namespace="layers.1"),
+                ReLu(namespace="layers.1"),
+                Dense(3, namespace="layers.2"),
+                ReLu(namespace="layers.2"),
+                Dense(1, namespace="layers.3"),
             ],
             classifier=SigmoidBinaryClassifier(),
         ),
@@ -68,11 +66,11 @@ def l2reg_model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(20),
-                ReLu(),
-                Dense(3),
-                ReLu(),
-                Dense(1),
+                Dense(20, namespace="1"),
+                ReLu(namespace="1"),
+                Dense(3, namespace="2"),
+                ReLu(namespace="2"),
+                Dense(1, namespace="3"),
             ],
             classifier=SigmoidBinaryClassifier(),
             regularizer=L2Regularizer(lambd=0.7),
@@ -86,13 +84,13 @@ def dropout_model(cnt_features):
         network=Sequence(
             cnt_features=cnt_features,
             layers=[
-                Dense(20),
-                ReLu(),
-                Dropout(0.86),
-                Dense(3),
-                ReLu(),
-                Dropout(0.86),
-                Dense(1),
+                Dense(20, namespace="1"),
+                ReLu(namespace="1"),
+                Dropout(0.86, namespace="1"),
+                Dense(3, namespace="2"),
+                ReLu(namespace="2"),
+                Dropout(0.86, namespace="2"),
+                Dense(1, namespace="3"),
             ],
             classifier=SigmoidBinaryClassifier(),
         ),
@@ -117,7 +115,13 @@ def plot_boundary(reg_name, m, xt, yt):
     axes = plt.gca()
     axes.set_xlim([-0.75, 0.40])
     axes.set_ylim([-0.75, 0.65])
-    plot_decision_boundary(lambda x: m.predict(x.T), xt, yt)
+    utils.plot_decision_boundary(lambda x: m.predict(x.T), xt, yt)
+
+
+def display_model(md: Model):
+    gz = graphviz_exporter.export(md.network.cost_graph)
+    gz.view()
+    print(text_exporter.export(md.network.cost_graph))
 
 
 if __name__ == "__main__":
@@ -126,7 +130,7 @@ if __name__ == "__main__":
     plt.rcParams["image.cmap"] = "gray"
 
     # load image dataset: blue/red dots in circles
-    train_x, train_y, test_x, test_y = load_2D_dataset()
+    train_x, train_y, test_x, test_y = utils.load_2D_dataset()
 
     m_train = train_x.shape[1]
     m_test = test_x.shape[1]
@@ -136,6 +140,10 @@ if __name__ == "__main__":
     models = [default_model(n), l2reg_model(n), dropout_model(n)]
 
     for model in models:
+        utils.display_graph(model.network.cost_graph)
+        input("Press enter to continue: ")
+
+    for model in models:
         # Train
         train_x = train_x.astype("float32")
         start_time = time.time()
@@ -143,11 +151,11 @@ if __name__ == "__main__":
 
         # Predict
         train_predictions = model.predict(train_x)
-        train_accuracy = m.accuracy(train_predictions, train_y)
+        train_accuracy = metrics.accuracy(train_predictions, train_y)
         print(f"Train accuracy = {train_accuracy}%")
 
         test_predictions = model.predict(test_x)
-        test_accuracy = m.accuracy(test_predictions, test_y)
+        test_accuracy = metrics.accuracy(test_predictions, test_y)
         print(f"Test accuracy = {test_accuracy}%")
 
         # Plot

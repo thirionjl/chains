@@ -2,8 +2,8 @@
 import numpy as np
 
 from .ops import UnaryOp, ElementWiseUnaryOp
-from .static_shape import StaticShape
-from .tensor import Tensor
+from .shape import Shape
+from chains.utils.nd_typing import NdArrayLike
 
 __all__ = ["ReLu", "LeakyReLu", "TanH", "Sigmoid", "SoftMax"]
 
@@ -11,7 +11,7 @@ __all__ = ["ReLu", "LeakyReLu", "TanH", "Sigmoid", "SoftMax"]
 class ReLu(ElementWiseUnaryOp):
     """Implements the rectified linear unit operation"""
 
-    def compute(self, x: Tensor):
+    def compute(self, x: NdArrayLike):
         super().compute(x)
         self.output = np.fmax(x, 0)
 
@@ -28,7 +28,7 @@ class LeakyReLu(ElementWiseUnaryOp):
         super().__init__()
         self.leak = leak
 
-    def compute(self, x: Tensor):
+    def compute(self, x: NdArrayLike):
         super().compute(x)
         self.output = np.fmax(self.leak * x, x)
 
@@ -42,7 +42,7 @@ class LeakyReLu(ElementWiseUnaryOp):
 class TanH(ElementWiseUnaryOp):
     """Hyperbolic tangent activation function"""
 
-    def compute(self, x: Tensor):
+    def compute(self, x: NdArrayLike):
         super().compute(x)
         self.output = np.tanh(x)
 
@@ -55,10 +55,10 @@ class Sigmoid(ElementWiseUnaryOp):
     """Sigmoid activation function. Used for binary classification"""
 
     @staticmethod
-    def sigmoid(x: Tensor):
+    def sigmoid(x: NdArrayLike):
         return np.exp(np.fmin(x, 0)) / (1 + np.exp(-np.abs(x)))
 
-    def compute(self, x: Tensor):
+    def compute(self, x: NdArrayLike):
         super().compute(x)
         self.output = self.sigmoid(x)
 
@@ -77,28 +77,28 @@ class SoftMax(UnaryOp):
         self.class_axis = class_axis
 
     @staticmethod
-    def reduce_max(x: Tensor, class_axis):
+    def reduce_max(x: NdArrayLike, class_axis):
         # dim(x) =  dim(out) = (x,y,z,t)
         # dims(max_1) =  (x,y,z,1)
         max_1 = np.max(x, axis=class_axis, keepdims=True)
         return np.subtract(x, max_1)
 
     @staticmethod
-    def softmax(x: Tensor, class_axis):
+    def softmax(x: NdArrayLike, class_axis):
         # dim(x) =  dim(e) =  dim(out) = (x,y,z,t)
         # dim(s) = (x,y,z,1)
         e = np.exp(SoftMax.reduce_max(x, class_axis))
         s = np.sum(e, axis=class_axis, keepdims=True)
         return np.divide(e, s)
 
-    def compute(self, x: Tensor):
+    def compute(self, x: NdArrayLike):
         super().compute(x)
         self.output = SoftMax.softmax(x, self.class_axis)
 
-    def check_incoming_shapes(self, x: StaticShape):
+    def check_incoming_shapes(self, x: Shape):
         pass
 
-    def compute_out_shape(self, x_shape: StaticShape) -> StaticShape:
+    def compute_out_shape(self, x_shape: Shape) -> Shape:
         return x_shape
 
     def partials(self, d_output):

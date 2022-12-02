@@ -6,9 +6,9 @@ import numpy as np
 import coursera.course1.w2.lr_utils as cs
 from chains.core import metrics as m
 from chains.core import node_factory as f, initializers as init
-from chains.core import node_factory as nf
 from chains.core import optimizers as gd, graph as g
-from chains.core.static_shape import Dim
+from chains.core.shape import Dim, Shape
+from chains.tools import graphviz_exporter
 from coursera.utils import plot_costs
 
 ITERATIONS_UNIT = 100
@@ -20,12 +20,12 @@ class LogisticRegressionModel:
         self.m = Dim.unknown()  # Number of examples
         self.n = features_count  # Number of features
 
-        self.W = f.var("W", init.ZeroInitializer(), shape=(1, self.n))
-        self.b = f.var("b", init.ZeroInitializer(), shape=(1, 1))
-        self.X = f.placeholder(shape=(self.n, self.m))
-        self.Y = f.placeholder(shape=(1, self.m))
+        self.W = f.var("W", init.ZeroInitializer(), shape=Shape.of(1, self.n))
+        self.b = f.var("b", init.ZeroInitializer(), shape=Shape.of(1, 1))
+        self.X = f.placeholder(shape=Shape.of(self.n, self.m))
+        self.Y = f.placeholder(shape=Shape.of(1, self.m))
 
-        self.logits = nf.fully_connected(self.X, self.W, self.b, first_layer=True)
+        self.logits = f.fully_connected(self.X, self.W, self.b, first_layer=True)
         self.loss = f.sigmoid_cross_entropy(self.logits, self.Y)
         self.predictions = f.is_greater_than(f.sigmoid(self.logits), 0.5)
 
@@ -39,21 +39,26 @@ class LogisticRegressionModel:
         self.cost_graph.initialize_variables()
         optimizer = gd.GradientDescentOptimizer(learning_rate)
         optimizer.prepare_and_check(self.cost_graph)
-        costs = []
+        train_costs = []
         for i in range(num_iterations):
             optimizer.run()
 
             if i % ITERATIONS_UNIT == 0:
-                costs.append(optimizer.cost)
+                train_costs.append(optimizer.cost)
 
             if print_cost and i % ITERATIONS_UNIT == 0:
                 print(f"Cost after iteration {i}: {optimizer.cost}")
 
-        return costs
+        return train_costs
 
     def predict(self, x_test):
         self.prediction_graph.placeholders = {self.X: x_test}
         return self.prediction_graph.evaluate()
+
+
+def display_cost_graph():
+    gz = graphviz_exporter.export(model.cost_graph)
+    gz.view()
 
 
 if __name__ == "__main__":
@@ -102,9 +107,12 @@ if __name__ == "__main__":
     train_set_x = np.array(train_set_x_flatten / 255.0, dtype=np.float32)
     test_set_x = np.array(test_set_x_flatten / 255, dtype=np.float32)
 
-    print("=== Train ===")
+    print("=== Model ===")
     pixels = num_px * num_px * 3
     model = LogisticRegressionModel(pixels)
+    display_cost_graph()
+
+    print("=== Train ===")
     lr = 0.005
 
     train_set_y = train_set_y.astype(np.float32)

@@ -1,11 +1,11 @@
 import numpy as np
 
-from .tensor import Tensor
+from chains.utils.nd_typing import NdArrayLike
 
 __all__ = ["remove_broadcasting"]
 
 
-def remove_broadcasting(in_tensor: Tensor, d_output: Tensor):
+def remove_broadcasting(in_tensor: NdArrayLike, d_output: NdArrayLike):
     out_shape = np.shape(d_output)
     in_shape = np.shape(in_tensor)
 
@@ -15,7 +15,7 @@ def remove_broadcasting(in_tensor: Tensor, d_output: Tensor):
         return _sum_broadcast_positions(d_output, in_shape, out_shape)
 
 
-def _sum_broadcast_positions(t: Tensor, in_shape: tuple, out_shape):
+def _sum_broadcast_positions(t: NdArrayLike, in_shape: tuple, out_shape):
     pad = max(len(out_shape) - len(in_shape), 0)
     padded_mat_dims = ((1,) * pad) + in_shape
     zipped_shapes = enumerate(zip(padded_mat_dims, out_shape))

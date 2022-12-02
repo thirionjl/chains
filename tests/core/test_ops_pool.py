@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from chains.core.ops_pooling import MaxPool
-from chains.core.static_shape import StaticShape, Dim
+from chains.core.shape import Shape, Dim
 from chains.core.utils_conv import TensorFlowNHWC
 
 
@@ -10,18 +10,18 @@ def test_valid_shape_and_stride():
     pool = MaxPool(stride=2)
     m = Dim.unknown()
 
-    features = StaticShape(m, 3, 40, 30)
+    features = Shape.of(m, 3, 40, 30)
 
     pool.check_incoming_shapes(features)
     out_shape = pool.compute_out_shape(features)
-    assert out_shape == StaticShape(m, 3, 20, 15)
+    assert out_shape == Shape.of(m, 3, 20, 15)
 
 
 def test_invalid_shape_and_stride():
     pool = MaxPool(stride=3)
     m = Dim.unknown()
 
-    features = StaticShape(m, 3, 40, 30)
+    features = Shape.of(m, 3, 40, 30)
 
     with pytest.raises(ValueError) as ex:
         pool.check_incoming_shapes(features)
@@ -33,7 +33,7 @@ def test_compute_max_pool():
 
     features = np.arange(2 * 3 * 4 * 4, dtype=np.float32).reshape(2, 3, 4, 4)
 
-    pool.check_incoming_shapes(StaticShape.of_tensor(features))
+    pool.check_incoming_shapes(Shape.of_array_like(features))
     pool.compute(features)
     actual = pool.output
     assert actual.shape == (2, 3, 2, 2)
@@ -65,7 +65,7 @@ def test_compute_max_pool_with_other_format():
 
     features = np.arange(2 * 4 * 4 * 3, dtype=np.float32).reshape(2, 4, 4, 3)
 
-    pool.check_incoming_shapes(StaticShape.of_tensor(features))
+    pool.check_incoming_shapes(Shape.of_array_like(features))
     pool.compute(features)
     actual = pool.output
 

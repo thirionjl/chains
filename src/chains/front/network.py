@@ -1,8 +1,10 @@
 import abc
+import collections.abc
 
 from ..core import node_factory as f, initializers as init
 from ..core.graph import Node, Graph
-from ..core.static_shape import Dim
+from ..core.node_namespace import NodeNamespace
+from ..core.shape import Dim, Shape
 from ..utils import validate
 from ..utils.naming import NameGenerator
 
@@ -32,23 +34,29 @@ class Network(abc.ABC):
 
 
 class Sequence(Network):
-    def __init__(self, cnt_features: int, layers, classifier, regularizer=None):
+    def __init__(
+        self,
+        cnt_features: int,
+        layers: collections.abc.Sequence["Layer"],
+        classifier,
+        regularizer=None,
+    ):
         super().__init__()
         self.layer_names = NameGenerator()
         self.cnt_features = Dim.of(cnt_features)
         self.cnt_samples = Dim.unknown()
-        self.inputs = f.placeholder(shape=(self.cnt_features, self.cnt_samples))
+        self.inputs = f.placeholder(shape=Shape.of(self.cnt_features, self.cnt_samples))
 
         cost_graph, predict_graph, regularizable_vars = self.inputs, self.inputs, []
         for pos, layer in enumerate(layers):
-            cost_graph, predict_graph, vars = layer.append(
+            cost_graph, predict_graph, variables = layer.append(
                 pos, self.layer_names, cost_graph, predict_graph
             )
-            regularizable_vars.extend(vars)
+            regularizable_vars.extend(variables)
 
         self.cnt_classes = classifier.cnt_classes
         self.label_size = classifier.label_size
-        self.labels = f.placeholder(shape=(self.label_size, self.cnt_samples))
+        self.labels = f.placeholder(shape=Shape.of(self.label_size, self.cnt_samples))
         cost_graph, predict_graph = classifier.append(
             self.layer_names, cost_graph, predict_graph, self.labels
         )
@@ -63,9 +71,10 @@ class Sequence(Network):
 
 
 class SequenceElement(abc.ABC):
-    def __init__(self):
+    def __init__(self, namespace=None):
         self.layer_name = None
         self.var_name_generator = None
+        self.namespace = namespace
 
     def new_var_name(self, prefix):
         return self.var_name_generator.generate(prefix)
@@ -80,7 +89,8 @@ class Layer(SequenceElement, abc.ABC):
         self, pos: int, name_generator: NameGenerator, logits: Node, labels: Node
     ):
         self.prepare_names(name_generator)
-        return self.do_append(pos, logits, labels)
+        with NodeNamespace(self.namespace):
+            return self.do_append(pos, logits, labels)
 
     @abc.abstractmethod
     def do_append(self, pos: int, logits: Node, labels: Node):
@@ -91,7 +101,14 @@ class Dense(Layer):
     default_weight_initializer = init.HeInitializer()
     default_bias_initializer = init.ZeroInitializer()
 
-    def __init__(self, neurons: int, weight_initializer=None, bias_initializer=None):
+    def __init__(
+        self,
+        neurons: int,
+        weight_initializer=None,
+        bias_initializer=None,
+        namespace=None,
+    ):
+        super().__init__(namespace)
         self.neurons = neurons
         self.weight_initializer = (
             self.default_weight_initializer
@@ -109,8 +126,12 @@ class Dense(Layer):
         cnt_features = cost_g.shape[0]
         w_name = self.new_var_name("W")
         b_name = self.new_var_name("b")
-        w = f.var(w_name, self.weight_initializer, shape=(self.neurons, cnt_features))
-        b = f.var(b_name, self.bias_initializer, shape=(self.neurons, 1))
+        w = f.var(
+            w_name,
+            self.weight_initializer,
+            shape=Shape.of(self.neurons, cnt_features),
+        )
+        b = f.var(b_name, self.bias_initializer, shape=Shape.of(self.neurons, 1))
         cost_fc = f.fully_connected(
             cost_g, w, b, first_layer=(pos == 0), name=self.layer_name
         )
@@ -121,6 +142,9 @@ class Dense(Layer):
 
 
 class ReLu(Layer):
+    def __init__(self, namespace=None):
+        super().__init__(namespace)
+
     def do_append(self, pos, cost_graph, predict_graph):
         return (
             f.relu(cost_graph, name=self.layer_name),
@@ -130,6 +154,9 @@ class ReLu(Layer):
 
 
 class LeakyReLu(Layer):
+    def __init__(self, namespace=None):
+        super().__init__(namespace)
+
     def do_append(self, pos, cost_graph, predict_graph):
         return (
             f.leaky_relu(cost_graph, name=self.layer_name),
@@ -139,7 +166,8 @@ class LeakyReLu(Layer):
 
 
 class Dropout(Layer):
-    def __init__(self, keep_prob=0.8):
+    def __init__(self, keep_prob=0.8, namespace=None):
+        super().__init__(namespace)
         if not (0 < keep_prob <= 1):
             raise ValueError(
                 f"Keep probability should be between 0 and 1 but got {keep_prob}"
@@ -158,7 +186,8 @@ class BatchNorm(Layer):
     default_beta_initializer = init.ZeroInitializer()
     default_gamma_initializer = init.OneInitializer()
 
-    def __init__(self, beta_initializer=None, gamma_initializer=None):
+    def __init__(self, beta_initializer=None, gamma_initializer=None, namespace=None):
+        super().__init__(namespace)
         self.beta_initializer = (
             self.default_beta_initializer
             if beta_initializer is None
@@ -175,8 +204,10 @@ class BatchNorm(Layer):
 
         beta_name = self.new_var_name("beta")
         gamma_name = self.new_var_name("gamma")
-        beta = f.var(beta_name, self.beta_initializer, shape=(cnt_features, 1))
-        gamma = f.var(gamma_name, self.gamma_initializer, shape=(cnt_features, 1))
+        beta = f.var(beta_name, self.beta_initializer, shape=Shape.of(cnt_features, 1))
+        gamma = f.var(
+            gamma_name, self.gamma_initializer, shape=Shape.of(cnt_features, 1)
+        )
 
         bnt = f.batch_norm_train(cost_graph, beta, gamma, name=self.layer_name)
         bnp = f.batch_norm_predict(
@@ -188,6 +219,7 @@ class BatchNorm(Layer):
 
 class Classifier(SequenceElement, abc.ABC):
     def __init__(self, label_size, cnt_classes):
+        super().__init__()
         self.layer_name = None
         self.label_size = label_size
         self.cnt_classes = cnt_classes
@@ -241,6 +273,7 @@ class Regularizer(SequenceElement, abc.ABC):
 
 class L2Regularizer(Regularizer):
     def __init__(self, lambd=0.8):
+        super().__init__()
         self.lambd = lambd
 
     def do_append(self, cost_graph: Node, vars, inputs):

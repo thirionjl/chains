@@ -2,17 +2,21 @@
 import warnings
 from collections import deque, defaultdict
 from operator import attrgetter
-from typing import Dict, Set
+from typing import ClassVar, Any, Mapping, Union
 
 import numpy as np
 
+from chains.utils.nd_typing import is_ndarray_like, NdArrayLike
+from . import node_namespace
 from .ops import Var, Constant, Placeholder, Op
 from .ops_arithmetic import Negate, Pow, Add, ConstMul, Mul
 from .ops_mat import Transpose, MatMul
-from .tensor import is_tensor, Tensor
+from .shape import Shape
 from ..utils.naming import NameGenerator
 
 __all__ = ["Node", "Graph"]
+
+Operand = Union[NdArrayLike, "Node"]
 
 
 class Node:
@@ -22,7 +26,7 @@ class Node:
     Instead, it holds a reference to the actual computation which is of type
     `Op <chains.core.ops.Op>` and holds references to the incoming nodes.
 
-    Most often you do not need to create a node directly but it is recommended
+    Most often you do not need to create a node directly, but it is recommended
     to use one of the factory methods of `<chains.core.node_factory>` for
     instance:
 
@@ -30,7 +34,7 @@ class Node:
     >>> Node logits = ...
     >>> Node softmax = nf.softmax(logits)
 
-    Also `Node` implements the +,-,*,/,**(exponentiation),@ (matrix mult),
+    Also, `Node` implements the +,-,*,/,**(exponentiation),@ (matrix mult),
     infix operators, as well a .T (transpose) operators making it easy
     to create nodes without much code. For instance:
 
@@ -51,10 +55,21 @@ class Node:
     available only if method `compute`has been called before.
     """
 
-    _all_node_names: Set[str] = set()
-    _name_generator = NameGenerator()
+    __slots__ = (
+        "shape",
+        "dtype",
+        "op",
+        "incoming_nodes",
+        "out_nodes",
+        "namespace",
+        "_name",
+    )
 
-    def __init__(self, op: Op, incoming_nodes=[], name: str = None):
+    # class vars
+    _all_node_names: ClassVar[set[str]] = set()
+    _name_generator: ClassVar[NameGenerator] = NameGenerator()
+
+    def __init__(self, op: Op, incoming_nodes=None, name: str = None):
         """Constructor
         :param op: The underlying computation
         :param incoming_nodes: The ordered list of incoming nodes. This
@@ -64,16 +79,18 @@ class Node:
         visualization tools or debugging. It is recommended the name is unique
         within your application.
         """
+        if incoming_nodes is None:
+            incoming_nodes = []
         incoming_shapes = tuple(n.shape for n in incoming_nodes)
         incoming_dtypes = tuple(n.dtype for n in incoming_nodes)
         op.check_incoming_shapes(*incoming_shapes)
-        self.shape = op.compute_out_shape(*incoming_shapes)
-        self.dtype = np.dtype(op.compute_out_dtype(*incoming_dtypes))
-        self.op = op
-        self._op_type = self._op_type(op)
-        self._name = Node._name(op, name)
-        self.incoming_nodes = tuple(incoming_nodes)
-        self.out_nodes = set()
+        self.shape: Shape = op.compute_out_shape(*incoming_shapes)
+        self.dtype: np.dtype = np.dtype(op.compute_out_dtype(*incoming_dtypes))
+        self.op: Op = op
+        self.namespace = node_namespace.current_ns()
+        self._name: str = Node._generate_name(op, name)
+        self.incoming_nodes: tuple["Node", ...] = tuple(incoming_nodes)
+        self.out_nodes: set["Node"] = set()
         for node in self.incoming_nodes:
             node.out_nodes.add(self)
 
@@ -82,71 +99,73 @@ class Node:
         return type(op).__name__
 
     @classmethod
-    def _name(cls, op: Op, suggested_name: str = None) -> str:
+    def _generate_name(cls, op: Op, suggested_name: str = None) -> str:
         if suggested_name is None:
             return Node._name_generator.generate(cls._op_type(op))
         else:
             return cls._unique_name(suggested_name)
 
     @classmethod
-    def _unique_name(cls, name: str) -> bool:
+    def _unique_name(cls, name: str) -> str:
         if name in cls._all_node_names:
             warnings.warn(f"Node name {name} is already used")
         return name
 
     def __str__(self):
         _in = [n.name for n in self.incoming_nodes]
+        _op_type = Node._op_type(self.op)
         return (
-            f"<{self._op_type} '{self._name}' shape={self.shape}, "
+            f"<{_op_type} '{self._name}' shape={self.shape}, "
             f"dtype={self.dtype}, in={_in}>"
         )
 
     def __repr__(self):
         _in = [n.name for n in self.incoming_nodes]
+        _op_type = Node._op_type(self.op)
         return (
-            f"Node({self._op!r}, {_in!r}, name={self._name!r}), "
+            f"Node({_op_type!r}, {_in!r}, name={self._name!r}), "
             f"dtype={self.dtype!r}"
         )
 
-    def __add__(self, other):
-        if is_tensor(other):
+    def __add__(self, other: Operand):
+        if is_ndarray_like(other):
             return Node(Add(), [self, Node(Constant(other))])
         elif isinstance(other, Node):
             return Node(Add(), [self, other])
         else:
-            self._raise_unsupported_data_type_for_operation(other)
+            self._raise_unsupported_data_type_for_operation("addition", other)
 
-    def __radd__(self, other):
+    def __radd__(self, other: Operand):
         return self.__add__(other)
 
-    def __sub__(self, other):
-        if is_tensor(other):
+    def __sub__(self, other: Operand):
+        if is_ndarray_like(other):
             return Node(Add(), [self, Node(Constant(-other))])
         elif isinstance(other, Node):
             return Node(Add(), [self, Node(Negate(), [other])])
         else:
             self._raise_unsupported_data_type_for_operation("subtraction", other)
 
-    def __rsub__(self, other):
-        if is_tensor(other):
+    def __rsub__(self, other: Operand):
+        if is_ndarray_like(other):
             return Node(Add(), [Node(Constant(other)), Node(Negate(), [self])])
         elif isinstance(other, Node):
             return Node(Add(), [other, Node(Negate(), [self])])
         else:
             self._raise_unsupported_data_type_for_operation("subtraction", other)
 
-    def __mul__(self, other):
-        if is_tensor(other):
+    def __mul__(self, other: Operand):
+        if is_ndarray_like(other):
             return Node(ConstMul(other), [self])
         elif isinstance(other, Node):
             return Node(Mul(), [self, other])
         else:
             self._raise_unsupported_data_type_for_operation("multiplication", other)
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: Operand):
         return self.__mul__(other)
 
-    def __pow__(self, other):
+    def __pow__(self, other: int):
         if isinstance(other, int):
             return Node(Pow(other), [self])
         else:
@@ -155,9 +174,9 @@ class Node:
     def __neg__(self):
         return Node(Negate(), [self])
 
-    def __matmul__(self, other):
-        if is_tensor(other):
-            return Node(MatMul(other), [self])
+    def __matmul__(self, other: Operand):
+        if is_ndarray_like(other):
+            return Node(MatMul(), [self, Node(Constant(other))])
         elif isinstance(other, Node):
             return Node(MatMul(), [self, other])
         else:
@@ -170,7 +189,7 @@ class Node:
         return Node(Transpose(), [self])
 
     @staticmethod
-    def _raise_unsupported_data_type_for_operation(op_name, other):
+    def _raise_unsupported_data_type_for_operation(op_name: str, other: Any) -> None:
         raise ValueError(f"Type {type(other)} is not supported type for {op_name}")
 
     def compute(self):
@@ -207,7 +226,7 @@ class Node:
     @value.setter
     def value(self, value):
         """Sets the value of this node."""
-        # On critical path: do not add to much checks here
+        # On critical path: do not add too much checks here
         self.op.output = value
 
     def check_is_set(self):
@@ -237,7 +256,7 @@ class Node:
     def initialize_if_needed(self):
         """Make sens only if it is a node holding a reference to a variable.
         If it is the case, the variable initializer is called to initialize
-        the variable in case it has no value. If it is not the case a exception
+        the variable in case it has no value. If it is not the case an exception
         is risen.
         """
         if self.is_var():
@@ -266,7 +285,7 @@ class Graph:
     - placeholders: Sets the list of all placeholders
     - check_initialized: Cehecks placeholders have been set and variables
       initialized
-    - `evaluate` or `forward`: Does a forward pass over the computation graph
+    - `evaluate` or `forward`: Does a forward pass over the computation graph,
       and it returns its value
     - backward: Executes a back-propagation over the graph and returns the
       partial derivatives of the cost function(root) relative to all variables
@@ -368,7 +387,7 @@ class Graph:
         return self._placeholders
 
     @placeholders.setter
-    def placeholders(self, values: Dict[Node, Tensor]):
+    def placeholders(self, values: Mapping[Node, NdArrayLike]):
         """Sets all the placeholder nodes in the graph"""
         for p in self._placeholders:
             p.value = values.get(p)

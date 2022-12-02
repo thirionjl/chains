@@ -1,4 +1,3 @@
-# import packages
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt

@@ -3,13 +3,14 @@ import numpy as np
 import chains.core.node_factory as nf
 import chains.core.optimizers as gd
 from chains.core.graph import Graph
+from chains.core.shape import Shape
 
 
 def test_quadratic():
     x = nf.initialized_var("x", np.array([[0.07], [0.4], [0.1]]))
     A = nf.constant(np.array([[2, -1, -2], [-1, 1, 0], [-2, 0, 4]]))
     B = nf.constant(np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]))
-    b = nf.placeholder(shape=(3, 1))
+    b = nf.placeholder(Shape.of(3, 1))
 
     quadratic = x.T() @ A @ x
     linear = B @ x - b

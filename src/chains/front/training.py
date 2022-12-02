@@ -5,7 +5,7 @@ import numpy as np
 
 from ..core.graph import Graph
 from ..core.optimizers import Optimizer
-from ..core.tensor import Tensor
+from chains.utils.nd_typing import NdArrayLike
 from ..utils import validate
 
 __all__ = [
@@ -16,7 +16,7 @@ __all__ = [
     "BatchTraining",
 ]
 
-FeedMethod = Callable[[Tensor, Tensor], None]
+FeedMethod = Callable[[NdArrayLike, NdArrayLike], None]
 
 
 class TrainListener:
@@ -47,8 +47,8 @@ class Training:
         self,
         cost_graph: Graph,
         feed_method: FeedMethod,
-        x_train: Tensor,
-        y_train: Tensor,
+        x_train: NdArrayLike,
+        y_train: NdArrayLike,
         epochs: int,
     ):
         validate.is_a("cost_graph", cost_graph, Graph)

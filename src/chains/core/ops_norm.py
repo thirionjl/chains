@@ -1,8 +1,10 @@
+from typing import Optional
+
 import numpy as np
 
+from chains.utils.nd_typing import NdArrayLike
 from .ops import Op
-from .static_shape import Dim, StaticShape
-from .tensor import Tensor
+from .shape import Dim, Shape
 from ..utils import validate
 
 __all__ = ["BatchNormTraining", "BatchNormPredict"]
@@ -10,6 +12,7 @@ __all__ = ["BatchNormTraining", "BatchNormPredict"]
 
 class BatchNormTraining(Op):
     def __init__(self, momentum=0.99, epsilon=1e-3, sample_axis=-1):
+        super().__init__()
         validate.is_one_of("sample_axis", sample_axis, (0, -1))
         self.sample_axis = sample_axis
         self.epsilon = epsilon
@@ -22,9 +25,7 @@ class BatchNormTraining(Op):
         self.avg = 0
         self.var = 0
 
-    def check_incoming_shapes(
-        self, beta: StaticShape, gamma: StaticShape, x: StaticShape
-    ):
+    def check_incoming_shapes(self, beta: Shape, gamma: Shape, x: Shape):
         self._verify_shapes(self.sample_axis, beta, gamma, x)
 
     @staticmethod
@@ -39,24 +40,22 @@ class BatchNormTraining(Op):
         BatchNormTraining._verify_vector(axis, "gamma", gamma, features_dim)
 
     @staticmethod
-    def _verify_vector(axis, name: str, shape: StaticShape, features_dim: Dim):
+    def _verify_vector(axis: int, name: str, shape: Shape, features_dim: Dim):
         assert axis in (-1, 0)
-        s = [Dim.unknown(), Dim.unknown()]
+        s: list[Dim] = [Dim.unknown(), Dim.unknown()]
         s[axis] = Dim.of(1)
         s[axis + 1] = features_dim
-        correct_shape = StaticShape.from_tuple(s)
+        correct_shape = Shape.of(*s)
         if not correct_shape == shape:
             raise ValueError(
                 f"Incorrect shape for {name} should be "
                 f"{correct_shape}, but got {shape}"
             )
 
-    def compute_out_shape(
-        self, beta_shape, gamma_shape, x_shape: StaticShape
-    ) -> StaticShape:
+    def compute_out_shape(self, beta_shape, gamma_shape, x_shape: Shape) -> Shape:
         return x_shape
 
-    def compute(self, beta: Tensor, gamma: Tensor, x: Tensor):
+    def compute(self, beta: NdArrayLike, gamma: NdArrayLike, x: NdArrayLike):
         self.beta = beta
         self.gamma = gamma
         mu = np.mean(x, axis=self.sample_axis, keepdims=True)
@@ -88,10 +87,11 @@ class BatchNormPredict(Op):
     def __init__(
         self,
         train_op: BatchNormTraining = None,
-        avg: Tensor = None,
-        var: Tensor = None,
+        avg: Optional[NdArrayLike] = None,
+        var: Optional[NdArrayLike] = None,
         epsilon=1e-3,
     ):
+        super().__init__()
         self.predefined_epsilon = None
         self.predefined_avg = None
         self.predefined_var = None
@@ -117,7 +117,7 @@ class BatchNormPredict(Op):
         return cls(train_op)
 
     @classmethod
-    def from_fixed_values(cls, avg: Tensor = None, var: Tensor = None):
+    def from_fixed_values(cls, avg: NdArrayLike, var: NdArrayLike):
         return cls(avg, var)
 
     @property
@@ -158,12 +158,10 @@ class BatchNormPredict(Op):
     def check_incoming_shapes(self, *static_shapes):
         pass
 
-    def compute_out_shape(
-        self, beta_shape, gamma_shape, x_shape: StaticShape
-    ) -> StaticShape:
+    def compute_out_shape(self, beta_shape, gamma_shape, x_shape: Shape) -> Shape:
         return x_shape
 
-    def compute(self, beta: Tensor, gamma: Tensor, x: Tensor):
+    def compute(self, beta: NdArrayLike, gamma: NdArrayLike, x: NdArrayLike):
         sq = np.sqrt(self.var + self.epsilon)
         x_hat = (x - self.avg) / sq
         self.output = gamma * x_hat + beta

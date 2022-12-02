@@ -2,7 +2,7 @@ from typing import Mapping, Any
 
 from .ops import Op, Var
 from .ops_norm import BatchNormPredict, BatchNormTraining
-from .tensor import Tensor
+from chains.utils.nd_typing import NdArrayLike
 
 registered_savers = []
 
@@ -25,10 +25,10 @@ class Saver(metaclass=MetaSaver):
     def accepts(cls, op: Op) -> bool:
         return False
 
-    def save(self, op: Op) -> Mapping[str, Tensor]:
+    def save(self, op: Op) -> Mapping[str, NdArrayLike]:
         raise NotImplementedError
 
-    def restore(self, op: Op, values: Mapping[str, Tensor]) -> None:
+    def restore(self, op: Op, values: Mapping[str, NdArrayLike]) -> None:
         raise NotImplementedError
 
 
@@ -39,7 +39,7 @@ def save(op: Op):
     return None
 
 
-def restore(op: Op, values: Mapping[str, Tensor]) -> None:
+def restore(op: Op, values: Mapping[str, NdArrayLike]) -> None:
     for saver in registered_savers:
         if saver.accepts(op):
             saver.restore(op, values)
@@ -50,10 +50,10 @@ class VarSaver(Saver):
     def accepts(cls, op: Op) -> bool:
         return isinstance(op, Var)
 
-    def save(self, op: Op) -> Mapping[str, Tensor]:
+    def save(self, op: Op) -> Mapping[str, NdArrayLike]:
         return {"value": op.output}
 
-    def restore(self, op: Op, values: Mapping[str, Tensor]) -> None:
+    def restore(self, op: Op, values: Mapping[str, NdArrayLike]) -> None:
         op.output = values["value"]
 
 
@@ -65,6 +65,6 @@ class BatchNormSaver(Saver):
     def save(self, op):
         return {"avg": op.avg, "var": op.var}
 
-    def restore(self, op, values: Mapping[str, Tensor]):
+    def restore(self, op, values: Mapping[str, NdArrayLike]):
         op.avg = values["avg"]
         op.var = values["var"]

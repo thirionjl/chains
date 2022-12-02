@@ -4,9 +4,9 @@ import abc
 
 import numpy as np
 
+from chains.utils.nd_typing import NdArrayLike
 from .initializers import VarInitializer
-from .static_shape import StaticShape
-from .tensor import Tensor
+from .shape import Shape
 from .utils_broadcasting import remove_broadcasting
 from ..utils import validate
 
@@ -41,12 +41,12 @@ class Op(abc.ABC):
     def __init__(self):
         self.output = None
 
-    def compute(self):
+    def compute(self, *args):
         """Computes the output ot the operation given some input `Tensor`
         values. Must store the result in `self.output` field"""
         pass
 
-    def partials(self, d_output):
+    def partials(self, d_output: NdArrayLike):
         """Returns an ordered list representing partial derivatives relative to
         each input (in same order they were received in the `compute`method).
 
@@ -55,15 +55,15 @@ class Op(abc.ABC):
         cost function relative to this `Op`output. This partial derivative is
         given in parameter `d_output`
         """
-        raise RuntimeError(f"{self} does not support derivation")
+        raise NotImplementedError(f"{self} does not support derivation")
 
-    def check_incoming_shapes(self, *static_shapes):
+    def check_incoming_shapes(self, *static_shapes: Shape):
         """Verifies the shapes of inputs are valid.
         :param static_shapes: Ordered list of `<chains.core.shape.StaticShape>`
         """
         pass
 
-    def compute_out_shape(self, *static_shapes) -> StaticShape:
+    def compute_out_shape(self, *static_shapes: Shape) -> Shape:
         """Computes the output `<chains.core.shape.StaticShape>`
 
         :param static_shapes: Ordered list of `<chains.core.shape.StaticShape>`
@@ -71,7 +71,7 @@ class Op(abc.ABC):
         """
         raise NotImplementedError
 
-    def compute_out_dtype(self, *dtypes):
+    def compute_out_dtype(self, *dtypes: np.dtype):
         """Computes the output dtype given input dtypes.
 
         :param dtypes: Ordered list of dtypes of the inputs
@@ -107,24 +107,26 @@ class BinaryOp(Op, abc.ABC):
 class _NoOp(Op):
     """Base class for all `Op` having zero input parameters"""
 
-    def __init__(self, shape: tuple, dtype=np.float32):
+    def __init__(self, shape: Shape, dtype=np.float32):
         super().__init__()
-        validate.is_a("shape", shape, tuple)
+        validate.is_a("shape", shape, Shape)
         validate.is_number_dtype(dtype)
 
-        self.shape = StaticShape.from_tuple(shape)
+        self.shape = shape
         self.dtype = np.dtype(dtype)
 
-    def compute_out_shape(self) -> StaticShape:
+    def compute_out_shape(self, *unused: Shape) -> Shape:
+        if len(unused) > 0:
+            raise ValueError(f"No incoming shapes expected")
         return self.shape
 
-    def compute_out_dtype(self, *dtypes):
+    def compute_out_dtype(self, *dtypes: np.dtype):
         return self.dtype
 
     def check(self):
         if self.output is None:
             raise ValueError("A settable cannot be set with None")
-        value_shape = StaticShape.of_tensor(self.output)
+        value_shape = Shape.of_array_like(self.output)
         if not value_shape.is_assignable_to(self.shape):
             raise ValueError(
                 f"{type(self)} accepts values compatible with "
@@ -140,7 +142,7 @@ class _NoOp(Op):
 class Var(_NoOp):
     """Represents a variable"""
 
-    def __init__(self, initializer: VarInitializer, shape: tuple, dtype=np.float32):
+    def __init__(self, initializer: VarInitializer, shape: Shape, dtype=np.float32):
         """Creates a variable.
         :param initializer: VarInitializer that will initialize the variable
         :param shape: `StaticShape`of the variable
@@ -149,7 +151,7 @@ class Var(_NoOp):
         super().__init__(shape, dtype)
         validate.is_a("var_initializer", initializer, VarInitializer)
 
-        if StaticShape.from_tuple(shape).is_unknown():
+        if shape.has_unknown_dim():
             raise ValueError("Var should have only known dimensions in declared shape")
 
         self.initializer = initializer
@@ -172,8 +174,8 @@ class Placeholder(_NoOp):
 class Constant(_NoOp):
     """Represent a simple constant"""
 
-    def __init__(self, value: Tensor, dtype=np.float32):
-        super().__init__(StaticShape.of_tensor(value), dtype)
+    def __init__(self, value: NdArrayLike, dtype=np.float32):
+        super().__init__(Shape.of_array_like(value), dtype)
         self.output = np.array(value).astype(dtype)
         self.check()
 
@@ -181,16 +183,16 @@ class Constant(_NoOp):
 class ElementWiseBinaryOp(BinaryOp, abc.ABC):
     """Base class for `Op`s that take 2 inputs. If those inputs are Tensors,
     child classes run the same function for each component of that Tensor
-    element-wise. This makes derivatives simpler to calculate. Moreover
+    element-wise. This makes derivatives simpler to calculate. Moreover,
     this base class deals with to inputs that are not the same shape but are
     broadcastable to the same shape.
     """
 
-    def check_incoming_shapes(self, x: StaticShape, y: StaticShape):
+    def check_incoming_shapes(self, x: Shape, y: Shape):
         if not x.is_broadcast_compatible(y):
             raise ValueError(f"Shapes {x} and {y} cannot be broadcast together")
 
-    def compute_out_shape(self, x: StaticShape, y: StaticShape) -> StaticShape:
+    def compute_out_shape(self, x: Shape, y: Shape) -> Shape:
         return x.broadcast(y)
 
     def partials(self, d_output):
@@ -210,10 +212,10 @@ class ElementWiseUnaryOp(UnaryOp, abc.ABC):
     element-wise. This makes derivatives simpler to calculate.
     """
 
-    def check_incoming_shapes(self, x: StaticShape):
+    def check_incoming_shapes(self, x: Shape):
         pass
 
-    def compute_out_shape(self, x_shape: StaticShape) -> StaticShape:
+    def compute_out_shape(self, x_shape: Shape) -> Shape:
         return x_shape
 
     def partials(self, d_output):

@@ -1,7 +1,7 @@
 import numpy as np
 
 from chains.core import ops_regularization as reg, env
-from chains.core.static_shape import StaticShape
+from chains.core.shape import Shape
 
 
 def test_coursera_dropout_forward():
@@ -93,7 +93,7 @@ def test_l2_regularization():
     r = lamda / batch_size
 
     norm = reg.L2NormRegularization(lamda)
-    norm.check_incoming_shapes(StaticShape.scalar(), StaticShape.from_tuple((1, 2)))
+    norm.check_incoming_shapes(Shape.scalar(), Shape.from_tuple((1, 2)))
     norm.compute(batch_size, w1, w2)
     grad = norm.partials(1)
 

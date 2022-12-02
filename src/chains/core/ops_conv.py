@@ -1,9 +1,9 @@
 import numpy as np
 from numpy import ndarray
 
+from chains.utils.nd_typing import NdArrayLike
 from .ops import Op
-from .static_shape import StaticShape
-from .tensor import Tensor
+from .shape import Shape
 from ..core import utils_conv as uc
 
 __all__ = ["Conv2D"]
@@ -24,9 +24,7 @@ class Conv2D(Op):
         self.xc = None
         self.fc = None
 
-    def check_incoming_shapes(
-        self, features: StaticShape, filters: StaticShape, b: StaticShape
-    ):
+    def check_incoming_shapes(self, features: Shape, filters: Shape, b: Shape):
 
         if features.ndim != 4:
             raise ValueError(
@@ -72,8 +70,8 @@ class Conv2D(Op):
             )
 
     def compute_out_shape(
-        self, features: StaticShape, filters: StaticShape, biases: StaticShape
-    ) -> StaticShape:
+        self, features: Shape, filters: Shape, biases: Shape
+    ) -> Shape:
 
         d, c, fh, fw = self.conv_format.dchw(filters)
         m, s, nh, nw = self.conv_format.nchw(features)
@@ -81,10 +79,10 @@ class Conv2D(Op):
             nh.value, nw.value, fh.value, fw.value, self.padding, self.stride
         )
 
-        tup = self.conv_format.nchw_inv(StaticShape(m, d, out_h, out_w))
-        return StaticShape.from_tuple(tup)
+        tup = self.conv_format.nchw_inv(Shape.of(m, d, out_h, out_w))
+        return Shape.from_tuple(tup)
 
-    def compute(self, features: Tensor, filters: Tensor, bias: Tensor):
+    def compute(self, features: NdArrayLike, filters: NdArrayLike, bias: NdArrayLike):
         self.features = self.conv_format.nchw(features)
         self.filters = self.conv_format.dchw(filters)
         self.bias = bias

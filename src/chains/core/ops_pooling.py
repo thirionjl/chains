@@ -2,8 +2,8 @@ import numpy as np
 
 from chains.utils import validate
 from .ops import Op
-from .static_shape import StaticShape
-from .tensor import Tensor
+from .shape import Shape
+from chains.utils.nd_typing import NdArrayLike
 from ..core import utils_conv as uc
 
 __all__ = ["MaxPool"]
@@ -21,7 +21,7 @@ class MaxPool(Op):
         self.x_shape = None
         self.xc_shape = None
 
-    def check_incoming_shapes(self, features: StaticShape):
+    def check_incoming_shapes(self, features: Shape):
 
         if features.ndim != 4:
             raise ValueError(
@@ -42,17 +42,17 @@ class MaxPool(Op):
                 f"Width ({nw.value}) should be a multiple of stride {s} " f"but is not"
             )
 
-    def compute_out_shape(self, features: StaticShape) -> StaticShape:
+    def compute_out_shape(self, features: Shape) -> Shape:
 
         m, c, nh, nw = self.conv_format.nchw(features)
         out_h, out_w = uc.clip_positions_count(
             nh.value, nw.value, self.stride, self.stride, 0, self.stride
         )
 
-        tup = self.conv_format.nchw_inv(StaticShape(m, c, out_h, out_w))
-        return StaticShape.from_tuple(tup)
+        tup = self.conv_format.nchw_inv(Shape.of(m, c, out_h, out_w))
+        return Shape.from_tuple(tup)
 
-    def compute(self, features: Tensor):
+    def compute(self, features: NdArrayLike):
         self.features_nchw = self.conv_format.nchw(features)
         m, c, nh, nw = self.features_nchw.shape
         out_h, out_w = uc.clip_positions_count(
@@ -72,7 +72,7 @@ class MaxPool(Op):
 
         self.output = self.conv_format.nchw_inv(out)
 
-    def partials(self, d_output: Tensor):
+    def partials(self, d_output: NdArrayLike):
         m, c, nh, nw = self.features_nchw.shape
         d_out = self.conv_format.nchw(d_output)
 

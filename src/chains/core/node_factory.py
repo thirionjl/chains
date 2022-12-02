@@ -1,5 +1,6 @@
 import numpy as np
 
+from chains.utils.nd_typing import NdArrayLike
 from .graph import Node
 from .initializers import ConstantInitializer, VarInitializer
 from .ops import Var, Placeholder, Constant
@@ -11,8 +12,7 @@ from .ops_mat import ArgMax, MatMul, MaxComponent, SumComponents, AvgComponents
 from .ops_mat import Transpose, Reshape, AsScalar, DimOp
 from .ops_norm import BatchNormTraining, BatchNormPredict
 from .ops_regularization import L2NormRegularization, Dropout
-from .static_shape import StaticShape
-from .tensor import Tensor
+from .shape import Shape
 from ..utils import validate
 
 __all__ = [
@@ -50,21 +50,22 @@ def initialized_var(name: str, value):
     return Node(
         Var(
             initializer=ConstantInitializer(value),
-            shape=np.shape(value),
+            shape=Shape.of_array_like(value),
             dtype=np.array(value).dtype,
         ),
         name=name,
     )
 
 
-def var(name: str, initializer: VarInitializer, shape, dtype=np.float32):
+def var(name: str, initializer: VarInitializer, shape: Shape, dtype=np.float32):
     validate.is_not_blank("var_name", name)
-    validate.is_a("var_shape", shape, tuple)
+    validate.is_a("var_shape", shape, Shape)
 
     return Node(Var(initializer=initializer, shape=shape, dtype=dtype), name=name)
 
 
-def placeholder(shape, dtype=np.float32, name=None):
+def placeholder(shape: Shape, dtype=np.float32, name=None):
+    validate.is_a("shape", shape, Shape)
     return Node(Placeholder(shape, dtype), name=name)
 
 
@@ -112,7 +113,7 @@ def transpose(left: Node, name=None):
     return Node(Transpose(), [left], name=name)
 
 
-def reshape(shape: StaticShape, left: Node, name=None):
+def reshape(shape: Shape, left: Node, name=None):
     return Node(Reshape(shape), [left], name=name)
 
 
@@ -203,7 +204,12 @@ def batch_norm_predict(
 
 
 def batch_norm_predict_fixed(
-    mean: Tensor, variance: Tensor, inputs: Node, beta: Node, gamma: Node, name=None
+    mean: NdArrayLike,
+    variance: NdArrayLike,
+    inputs: Node,
+    beta: Node,
+    gamma: Node,
+    name=None,
 ) -> Node:
     bn = BatchNormPredict.from_fixed_values(mean, variance)
     return Node(bn, [beta, gamma, inputs], name=name)

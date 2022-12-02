@@ -1,8 +1,8 @@
 import numpy as np
 
 from .ops import Op, ElementWiseUnaryOp
-from .static_shape import StaticShape
-from .tensor import Tensor
+from .shape import Shape
+from chains.utils.nd_typing import NdArrayLike
 
 __all__ = ["L2NormRegularization", "Dropout"]
 
@@ -24,18 +24,18 @@ class L2NormRegularization(Op):
         self.factor = None
         self.batch_size = None
 
-    def check_incoming_shapes(self, batch_size: StaticShape, *weight_shapes):
-        if not batch_size.is_scalar:
+    def check_incoming_shapes(self, batch_size: Shape, *weight_shapes):
+        if not batch_size.is_scalar():
             raise ValueError("First argument must be scalar")
 
-    def compute_out_shape(self, *static_shapes) -> StaticShape:
-        return StaticShape.scalar()
+    def compute_out_shape(self, *static_shapes) -> Shape:
+        return Shape.scalar()
 
     def compute_out_dtype(self, *dtypes):
         all_dtypes = dtypes[1:] + (self.lambd, self.epsilon)
         return np.result_type(*all_dtypes)
 
-    def compute(self, batch_size, *weights: tuple):
+    def compute(self, batch_size, *weights):
         self.batch_size = batch_size
         self.weights = weights
         self.factor = self.lambd / self.batch_size
@@ -54,6 +54,7 @@ class L2NormRegularization(Op):
 
 class Dropout(ElementWiseUnaryOp):
     def __init__(self, keep_prob):
+        super().__init__()
         if type(keep_prob) != float or not (0 < keep_prob <= 1):
             raise ValueError(
                 f"Dropout keep probability should be a float "
@@ -62,13 +63,13 @@ class Dropout(ElementWiseUnaryOp):
         self.keep_prob = keep_prob
         self.mask = None
 
-    def compute_out_shape(self, x_shape: StaticShape) -> StaticShape:
+    def compute_out_shape(self, x_shape: Shape) -> Shape:
         return x_shape
 
     def compute_out_dtype(self, dtype):
         return np.result_type(dtype, self.keep_prob, np.bool)
 
-    def compute(self, x: Tensor):
+    def compute(self, x: NdArrayLike):
         super().compute(x)
         self.mask = np.random.random_sample(np.shape(x)) < self.keep_prob
         self.output = self.mask * self.x / self.keep_prob

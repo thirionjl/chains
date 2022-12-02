@@ -1,33 +1,35 @@
-from chains.core.static_shape import StaticShape, Dim
+from chains.core.shape import Shape, Dim
 
 
 def test_is_broadcast_compatible():
-    assert StaticShape(2, 5).is_broadcast_compatible(StaticShape(2, 5))
-    assert StaticShape(2, 5).is_broadcast_compatible(StaticShape(1))
-    assert StaticShape(3, 1).is_broadcast_compatible(StaticShape(1, 3))
-    assert StaticShape(7, 3, 3).is_broadcast_compatible(StaticShape(3, 3))
-    assert StaticShape(None, 3, 3).is_broadcast_compatible(StaticShape(3, 1))
-    assert StaticShape(None, 4).is_broadcast_compatible(StaticShape())
-    assert StaticShape(None, None).is_broadcast_compatible(StaticShape(1))
-    assert StaticShape(None, 1).is_broadcast_compatible(StaticShape(1, None))
+    assert Shape.of(2, 5).is_broadcast_compatible(Shape.of(2, 5))
+    assert Shape.of(2, 5).is_broadcast_compatible(Shape.of(1))
+    assert Shape.of(3, 1).is_broadcast_compatible(Shape.of(1, 3))
+    assert Shape.of(7, 3, 3).is_broadcast_compatible(Shape.of(3, 3))
+    assert Shape.of(None, 3, 3).is_broadcast_compatible(Shape.of(3, 1))
+    assert Shape.of(None, 4).is_broadcast_compatible(Shape.of())
+    assert Shape.of(None, None).is_broadcast_compatible(Shape.of(1))
+    assert Shape.of(None, 1).is_broadcast_compatible(Shape.of(1, None))
 
-    assert not StaticShape(2, 5).is_broadcast_compatible(StaticShape(3))
-    assert not StaticShape(None, 1).is_broadcast_compatible(StaticShape(None, 1))
-    assert not StaticShape(1, None).is_broadcast_compatible(StaticShape(None))
+    assert not Shape.of(2, 5).is_broadcast_compatible(Shape.of(3))
+    assert not Shape.of(None, 1).is_broadcast_compatible(Shape.of(None, 1))
+    assert not Shape.of(1, None).is_broadcast_compatible(Shape.of(None))
 
 
 def test_broadcasted_shape():
-    assert StaticShape(2, 5).broadcast(StaticShape(2, 5)) == StaticShape(2, 5)
-    assert StaticShape(2, 5).broadcast(StaticShape(1)) == StaticShape(2, 5)
-    assert StaticShape(3, 1).broadcast(StaticShape(1, 3)) == StaticShape(3, 3)
-    assert StaticShape(7, 3, 3).broadcast(StaticShape(3, 3)) == StaticShape(7, 3, 3)
+    x = Shape.of(2, 5).broadcast(Shape.of(2, 5))
+    y = Shape.of(2, 5)
+    assert x == y
+    assert Shape.of(2, 5).broadcast(Shape.of(1)) == y
+    assert Shape.of(3, 1).broadcast(Shape.of(1, 3)) == Shape.of(3, 3)
+    assert Shape.of(7, 3, 3).broadcast(Shape.of(3, 3)) == Shape.of(7, 3, 3)
 
     m = Dim.unknown()
     n = Dim.unknown()
-    assert StaticShape(m, 3, 3).broadcast(StaticShape(3, 1)) == StaticShape(m, 3, 3)
-    assert StaticShape(m, 4).broadcast(StaticShape()) == StaticShape(m, 4)
-    assert StaticShape(m, n).broadcast(StaticShape(1)) == StaticShape(m, n)
-    assert StaticShape(m, 1).broadcast(StaticShape(1, n)) == StaticShape(m, n)
+    assert Shape.of(m, 3, 3).broadcast(Shape.of(3, 1)) == Shape.of(m, 3, 3)
+    assert Shape.of(m, 4).broadcast(Shape.of()) == Shape.of(m, 4)
+    assert Shape.of(m, n).broadcast(Shape.of(1)) == Shape.of(m, n)
+    assert Shape.of(m, 1).broadcast(Shape.of(1, n)) == Shape.of(m, n)
 
 
 def test_dim_is_assignable_to():
@@ -47,43 +49,41 @@ def test_shape_is_assignable_to():
     m = Dim.unknown()
     n = Dim.unknown()
 
-    assert StaticShape(2, 3).is_assignable_to(StaticShape(2, 3))
-    assert StaticShape(2, 12).is_assignable_to(StaticShape(2, m))
-    assert StaticShape(2, m).is_assignable_to(StaticShape(2, m))
-    assert StaticShape(2, m).is_assignable_to(StaticShape(n, m))
+    assert Shape.of(2, 3).is_assignable_to(Shape.of(2, 3))
+    assert Shape.of(2, 12).is_assignable_to(Shape.of(2, m))
+    assert Shape.of(2, m).is_assignable_to(Shape.of(2, m))
+    assert Shape.of(2, m).is_assignable_to(Shape.of(n, m))
 
-    assert not StaticShape(2).is_assignable_to(StaticShape(2, m))
-    assert not StaticShape(2).is_assignable_to(StaticShape(3))
-    assert not StaticShape(2, m).is_assignable_to(StaticShape(2, n))
+    assert not Shape.of(2).is_assignable_to(Shape.of(2, m))
+    assert not Shape.of(2).is_assignable_to(Shape.of(3))
+    assert not Shape.of(2, m).is_assignable_to(Shape.of(2, n))
 
 
 def test_reduce_along_axis():
     m = Dim.unknown()
-    shape = StaticShape(2, 3, m, 5)
+    shape = Shape.of(2, 3, m, 5)
 
-    assert shape.reduce_along_axis(axis=0) == StaticShape(3, m, 5)
-    assert shape.reduce_along_axis(axis=-1) == StaticShape(2, 3, m)
-    assert shape.reduce_along_axis(axis=[0, 1]) == StaticShape(m, 5)
-    assert shape.reduce_along_axis(axis=[-1, -1, 1]) == StaticShape(2, m)
-    assert shape.reduce_along_axis(axis=[-1, -2]) == StaticShape(2, 3)
+    assert shape.reduce_along_axis(axis=0) == Shape.of(3, m, 5)
+    assert shape.reduce_along_axis(axis=-1) == Shape.of(2, 3, m)
+    assert shape.reduce_along_axis(axis=[0, 1]) == Shape.of(m, 5)
+    assert shape.reduce_along_axis(axis=[-1, -1, 1]) == Shape.of(2, m)
+    assert shape.reduce_along_axis(axis=[-1, -2]) == Shape.of(2, 3)
 
-    assert shape.reduce_along_axis(axis=0, keep_dims=True) == StaticShape(1, 3, m, 5)
-    assert shape.reduce_along_axis(axis=-1, keep_dims=True) == StaticShape(2, 3, m, 1)
-    assert shape.reduce_along_axis(axis=[0, 1], keep_dims=True) == StaticShape(
-        1, 1, m, 5
-    )
-    assert shape.reduce_along_axis(axis=[-1, -1, 1], keep_dims=True) == StaticShape(
+    assert shape.reduce_along_axis(axis=0, keep_dims=True) == Shape.of(1, 3, m, 5)
+    assert shape.reduce_along_axis(axis=-1, keep_dims=True) == Shape.of(2, 3, m, 1)
+    assert shape.reduce_along_axis(axis=[0, 1], keep_dims=True) == Shape.of(1, 1, m, 5)
+    assert shape.reduce_along_axis(axis=[-1, -1, 1], keep_dims=True) == Shape.of(
         2, 1, m, 1
     )
-    assert shape.reduce_along_axis(axis=[-1, -2], keep_dims=True) == StaticShape(
+    assert shape.reduce_along_axis(axis=[-1, -2], keep_dims=True) == Shape.of(
         2, 3, 1, 1
     )
 
 
 def test_transpose():
     m = Dim.unknown()
-    shape = StaticShape(2, 3, m)
+    shape = Shape.of(2, 3, m)
 
-    assert shape.transpose((1, 0, 2)) == StaticShape(3, 2, m)
-    assert shape.transpose(1, 0, 2) == StaticShape(3, 2, m)
-    assert shape.transpose(2, 1, 0) == StaticShape(m, 3, 2)
+    assert shape.transpose((1, 0, 2)) == Shape.of(3, 2, m)
+    assert shape.transpose(1, 0, 2) == Shape.of(3, 2, m)
+    assert shape.transpose(2, 1, 0) == Shape.of(m, 3, 2)

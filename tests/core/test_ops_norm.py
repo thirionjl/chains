@@ -4,7 +4,7 @@ from numpy import array
 from numpy.testing import assert_allclose
 
 from chains.core.ops_norm import BatchNormTraining, BatchNormPredict
-from chains.core.static_shape import StaticShape, Dim
+from chains.core.shape import Shape, Dim
 
 
 def test_batch_norm_computation_and_gradient():
@@ -14,9 +14,9 @@ def test_batch_norm_computation_and_gradient():
     bn = BatchNormTraining(momentum=0.99, epsilon=1e-3)
     beta = np.zeros((2, 1), dtype="float32")
     gamma = np.ones((2, 1), dtype="float32")
-    beta_shape = StaticShape(2, 1)
-    gamma_shape = StaticShape(2, 1)
-    x_shape = StaticShape(2, Dim.unknown())
+    beta_shape = Shape.of(2, 1)
+    gamma_shape = Shape.of(2, 1)
+    x_shape = Shape.of(2, Dim.unknown())
     bn.check_incoming_shapes(beta_shape, gamma_shape, x_shape)
 
     assert bn.compute_out_shape(beta_shape, gamma_shape, x_shape) == x_shape
@@ -72,9 +72,9 @@ def test_batch_norm_predict():
 
 
 def test_batch_norm_incorrect_shape():
-    beta_shape = StaticShape(2, 1)
-    gamma_shape = StaticShape(1, 2)
-    x_shape = StaticShape(2, Dim.unknown())
+    beta_shape = Shape.of(2, 1)
+    gamma_shape = Shape.of(1, 2)
+    x_shape = Shape.of(2, Dim.unknown())
     bn = BatchNormTraining(momentum=0.99, epsilon=1e-3)
 
     with pytest.raises(ValueError):

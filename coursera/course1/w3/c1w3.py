@@ -4,7 +4,7 @@ import chains.core.node_factory
 from chains.core import node_factory as f, initializers as init
 from chains.core import optimizers as gd, graph as g, env
 from chains.core.metrics import accuracy
-from chains.core.static_shape import Dim
+from chains.core.shape import Dim, Shape
 from coursera.course1.w3.planar_utils import load_planar_dataset
 from coursera.course1.w3.planar_utils import plot_decision_boundary
 
@@ -23,12 +23,12 @@ class ShallowNNModel:
         bias_initializer = init.ZeroInitializer()
 
         # Placeholders and Vars
-        self.W1 = f.var("W1", weight_initializer, shape=(self.h, self.n))
-        self.b1 = f.var("b1", bias_initializer, shape=(self.h, 1))
-        self.W2 = f.var("W2", weight_initializer, shape=(1, self.h))
-        self.b2 = f.var("b2", bias_initializer, shape=(1, 1))
-        self.X = f.placeholder(shape=(self.n, self.m))
-        self.Y = f.placeholder(shape=(1, self.m))
+        self.W1 = f.var("W1", weight_initializer, shape=Shape.of(self.h, self.n))
+        self.b1 = f.var("b1", bias_initializer, shape=Shape.of(self.h, 1))
+        self.W2 = f.var("W2", weight_initializer, shape=Shape.of(1, self.h))
+        self.b2 = f.var("b2", bias_initializer, shape=Shape.of(1, 1))
+        self.X = f.placeholder(shape=Shape.of(self.n, self.m))
+        self.Y = f.placeholder(shape=Shape.of(1, self.m))
 
         # Nodes
         lin_1 = chains.core.node_factory.fully_connected(

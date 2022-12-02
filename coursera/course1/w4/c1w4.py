@@ -7,7 +7,7 @@ from chains.core import node_factory as f, env
 from chains.core.graph import Graph
 from chains.core.initializers import XavierInitializer, ZeroInitializer
 from chains.core.optimizers import GradientDescentOptimizer
-from chains.core.static_shape import Dim
+from chains.core.shape import Dim, Shape
 from coursera.course1.w4.dnn_app_utils_v3 import load_data
 from coursera.utils import plot_costs
 
@@ -15,20 +15,22 @@ ITERATION_UNIT = 100
 
 
 class DeepNNModel:
-    def __init__(self, features_count, hidden_layers_sizes=[]):
+    def __init__(self, features_count, hidden_layers_sizes=None):
+        if hidden_layers_sizes is None:
+            hidden_layers_sizes = []
         self.m = Dim.unknown()
         self.n = features_count
         self.L = len(hidden_layers_sizes)
-        self.X = f.placeholder(shape=(self.n, self.m))
-        self.Y = f.placeholder(shape=(1, self.m))
+        self.X = f.placeholder(shape=Shape.of(self.n, self.m))
+        self.Y = f.placeholder(shape=Shape.of(1, self.m))
 
         # Hidden
         a = self.X
         a_size = self.n
-        for l, h in enumerate(hidden_layers_sizes):
-            linear = self.fully_connected_layer(a, a_size, h, l)
+        for lid, lz in enumerate(hidden_layers_sizes):
+            linear = self.fully_connected_layer(a, a_size, lz, lid)
             a = f.relu(linear)
-            a_size = h
+            a_size = lz
 
         # Output layer
         linear = self.fully_connected_layer(a, a_size, 1, self.L)
@@ -44,10 +46,12 @@ class DeepNNModel:
         weights = f.var(
             "W" + str(layer_number + 1),
             XavierInitializer(),
-            shape=(cnt_neurons, cnt_features),
+            shape=Shape.of(cnt_neurons, cnt_features),
         )
         biases = f.var(
-            "b" + str(layer_number + 1), ZeroInitializer(), shape=(cnt_neurons, 1)
+            "b" + str(layer_number + 1),
+            ZeroInitializer(),
+            shape=Shape.of(cnt_neurons, 1),
         )
         return chains.core.node_factory.fully_connected(
             features, weights, biases, first_layer=(layer_number == 0)
@@ -67,17 +71,17 @@ class DeepNNModel:
         self.cost_graph.initialize_variables()
         optimizer = GradientDescentOptimizer(learning_rate)
         optimizer.prepare_and_check(self.cost_graph)
-        costs = []
+        train_costs = []
         for i in range(num_iterations):
             optimizer.run()
 
             if i % ITERATION_UNIT == 0:
-                costs.append(optimizer.cost)
+                train_costs.append(optimizer.cost)
 
             if print_cost and i % ITERATION_UNIT == 0:
                 print(f"Cost after iteration {i}: {optimizer.cost}")
 
-        return costs
+        return train_costs
 
     def predict(self, x_test):
         self.prediction_graph.placeholders = {self.X: x_test}

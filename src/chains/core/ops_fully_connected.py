@@ -1,8 +1,8 @@
 import numpy as np
 
 from .ops import Op
-from .static_shape import StaticShape
-from .tensor import Tensor
+from .shape import Shape
+from chains.utils.nd_typing import NdArrayLike
 
 __all__ = ["FullyConnected"]
 
@@ -17,7 +17,7 @@ class FullyConnected(Op):
         self.feature_derivative = feature_derivative
 
     @staticmethod
-    def check_incoming_shapes(f: StaticShape, w: StaticShape, b: StaticShape):
+    def check_incoming_shapes(f: Shape, w: Shape, b: Shape):
         if f.ndim != 2:
             raise ValueError(
                 "Inputs of a fully connected layer should be " "a 2-D matrix"
@@ -43,12 +43,10 @@ class FullyConnected(Op):
             )
 
     @staticmethod
-    def compute_out_shape(
-        f: StaticShape, w: StaticShape, b: StaticShape
-    ) -> StaticShape:
-        return StaticShape(w[0], f[1])
+    def compute_out_shape(f: Shape, w: Shape, b: Shape) -> Shape:
+        return Shape.of(w[0], f[1])
 
-    def compute(self, features: Tensor, weights: Tensor, bias: Tensor):
+    def compute(self, features: NdArrayLike, weights: NdArrayLike, bias: NdArrayLike):
         self.bias_shape = np.shape(bias)
         self.features = features
         self.weights = weights

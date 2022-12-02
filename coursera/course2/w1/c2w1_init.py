@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from chains.core import metrics as m
 from chains.core import node_factory as f, initializers as init
 from chains.core import optimizers as gd, graph as g, env
-from chains.core.static_shape import Dim
+from chains.core.shape import Dim, Shape
 from coursera.course2.w1.init_utils import load_dataset, plot_decision_boundary
 from coursera.utils import plot_costs
 
@@ -17,7 +17,9 @@ class NNModel:
         "he": init.HeInitializer(),
     }
 
-    def __init__(self, features_count, initializer_name, hidden_layers_sizes=[10, 5]):
+    def __init__(self, features_count, initializer_name, hidden_layers_sizes=None):
+        if hidden_layers_sizes is None:
+            hidden_layers_sizes = [10, 5]
         self.weight_initializer = self.initializers.get(initializer_name)
         # Number of examples
         self.m = Dim.unknown()
@@ -27,8 +29,8 @@ class NNModel:
         self.L = len(hidden_layers_sizes)
 
         # Placeholders and Vars
-        self.X = f.placeholder(shape=(self.n, self.m))
-        self.Y = f.placeholder(shape=(1, self.m))
+        self.X = f.placeholder(shape=Shape.of(self.n, self.m))
+        self.Y = f.placeholder(shape=Shape.of(1, self.m))
 
         # Hidden
         a = self.X
@@ -51,10 +53,10 @@ class NNModel:
         weights = f.var(
             "W" + str(layer_num + 1),
             self.weight_initializer,
-            shape=(cnt_neurons, cnt_features),
+            shape=Shape.of(cnt_neurons, cnt_features),
         )
         biases = f.var(
-            "b" + str(layer_num + 1), init.ZeroInitializer(), shape=(cnt_neurons, 1)
+            "b" + str(layer_num + 1), init.ZeroInitializer(), shape=Shape.of(cnt_neurons, 1)
         )
         return f.fully_connected(
             features, weights, biases, first_layer=(layer_num == 0)

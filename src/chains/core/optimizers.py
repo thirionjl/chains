@@ -1,12 +1,12 @@
 import abc
 import math
+from collections.abc import Mapping
 from typing import Dict
 
 import numpy as np
 
+from chains.utils.nd_typing import NdArrayLike
 from .graph import Graph, Node
-from .static_shape import StaticShape
-from .tensor import Tensor
 from ..utils import validate
 
 __all__ = [
@@ -29,8 +29,7 @@ class Optimizer(abc.ABC):
         validate.is_a("graph", graph, Graph)
         if not graph.shape.is_scalar():
             raise ValueError(
-                f"Optimizers accept only graphs that output a "
-                f"scalar, but got {self.shape}"
+                f"Optimizers accept only graphs that output a scalar, but got {graph.shape}"
             )
         self._graph = graph
         self._graph.check_initialized()
@@ -45,7 +44,7 @@ class Optimizer(abc.ABC):
         self.cost = c
         return gradient, c
 
-    def apply_gradients(self, grads: Dict[Node, Tensor]):
+    def apply_gradients(self, grads: Mapping[Node, NdArrayLike]):
         for var_node in self._variables:
             var_node.value = self.apply_single_gradient(var_node, grads[var_node])
 
@@ -96,7 +95,7 @@ class AdamOptimizer(Optimizer):
         _initialize_zeros(graph, self.v)
         _initialize_zeros(graph, self.s)
 
-    def apply_gradients(self, grads: Dict[Node, Tensor]):
+    def apply_gradients(self, grads: Dict[Node, NdArrayLike]):
         self.t += 1
         self.beta1_pow *= self.beta1
         self.beta2_pow *= self.beta2
@@ -115,13 +114,11 @@ class AdamOptimizer(Optimizer):
             self.s[n] = s
 
 
-def _check_has_known_shape(n: StaticShape):
+def _check_has_known_shape(n: Node):
     static_shape = n.shape
-    if static_shape.is_unknown():
+    if static_shape.has_unknown_dim():
         raise ValueError(
-            f"Variable node {n} should have a static "
-            f"shape without unknown dimensions, but got "
-            f"has dimensions {static_shape}"
+            f"Variable node {n} should have a static shape without unknown dimensions, but got {static_shape}"
         )
 
 
@@ -130,7 +127,7 @@ def _check_is_percentage(f: float, parameter_name: str):
         raise ValueError(f"{parameter_name} should be >=0 and <1, but got {f}")
 
 
-def _initialize_zeros(g: Graph, velocity_map: Dict[Node, Tensor]):
+def _initialize_zeros(g: Graph, velocity_map: Dict[Node, NdArrayLike]):
     for var_node in g.variables:
         _check_has_known_shape(var_node)
         velocity_map[var_node] = 0

@@ -5,7 +5,8 @@ import time
 from chains.core import metrics as m
 from chains.core import node_factory as f, initializers as init
 from chains.core import optimizers as gd, graph as g, env
-from chains.core.static_shape import Dim
+from chains.core.shape import Dim, Shape
+from coursera.course2.w1 import reg_utils
 from coursera.course2.w1.reg_utils import *
 from coursera.utils import plot_costs
 
@@ -13,15 +14,15 @@ ITERATION_UNIT = 1_000
 
 
 class NNModel:
-    def __init__(self, features_count, *, lambd=0, keep_prob=1):
+    def __init__(self, features_count, *, lambd=0.0, keep_prob=1.0):
         hidden_layers_sizes = [20, 3]
 
         self.m = Dim.unknown()
         self.n = features_count
         self.L = len(hidden_layers_sizes)
 
-        self.X = f.placeholder(shape=(self.n, self.m), dtype=np.float64)
-        self.Y = f.placeholder(shape=(1, self.m))
+        self.X = f.placeholder(shape=Shape.of(self.n, self.m), dtype=np.float64)
+        self.Y = f.placeholder(shape=Shape.of(1, self.m))
         weights, biases = self.build_variables(self.n, hidden_layers_sizes)
 
         # Cost graph
@@ -38,17 +39,16 @@ class NNModel:
 
     @staticmethod
     def layers(
-        features_matrix, weight_matrices, bias_matrices, layers_count, keep_prob=1
+        features_matrix, weight_matrices, bias_matrices, layers_count, keep_prob=1.0
     ):
         a = features_matrix
         weights_and_bias = list(zip(weight_matrices, bias_matrices))
-        for l, (w, b) in enumerate(weights_and_bias[:-1]):
-            linear = NNModel.layer(a, w, b, l + 1)
+        for li, (w, b) in enumerate(weights_and_bias[:-1]):
+            linear = NNModel.layer(a, w, b, li + 1)
             a = f.relu(linear)
 
             if 0 < keep_prob < 1:
                 a = f.dropout(keep_prob, a)
-
         return NNModel.layer(a, weight_matrices[-1], bias_matrices[-1], layers_count)
 
     @staticmethod
@@ -56,16 +56,22 @@ class NNModel:
         a_size = features_count
         weight_matrices = []
         bias_matrices = []
-        i = 0
-        for i, h in enumerate(hidden_layers_sizes):
-            w = f.var("W" + str(i + 1), init.XavierInitializer(), shape=(h, a_size))
-            b = f.var("b" + str(i + 1), init.ZeroInitializer(), shape=(h, 1))
+        li = 0
+        for li, h in enumerate(hidden_layers_sizes):
+            w = f.var(
+                "W" + str(li + 1),
+                init.XavierInitializer(),
+                shape=Shape.of(h, a_size),
+            )
+            b = f.var("b" + str(li + 1), init.ZeroInitializer(), shape=Shape.of(h, 1))
             weight_matrices.append(w)
             bias_matrices.append(b)
             a_size = h
 
-        w = f.var("W" + str(i + 2), init.XavierInitializer(), shape=(1, a_size))
-        b = f.var("b" + str(i + 2), init.ZeroInitializer(), shape=(1, 1))
+        w = f.var(
+            "W" + str(li + 2), init.XavierInitializer(), shape=Shape.of(1, a_size)
+        )
+        b = f.var("b" + str(li + 2), init.ZeroInitializer(), shape=Shape.of(1, 1))
         weight_matrices.append(w)
         bias_matrices.append(b)
         return weight_matrices, bias_matrices
@@ -88,42 +94,42 @@ class NNModel:
         self.cost_graph.initialize_variables()
         optimizer = gd.GradientDescentOptimizer(learning_rate)
         optimizer.prepare_and_check(self.cost_graph)
-        costs = []
+        train_costs = []
         for i in range(num_iterations):
             env.seed(1)
             optimizer.run()
 
             if i % ITERATION_UNIT == 0:
-                costs.append(optimizer.cost)
+                train_costs.append(optimizer.cost)
 
             if print_cost and i % 10000 == 0:
                 print(f"Cost after iteration {i}: {optimizer.cost}")
 
-        return costs
+        return train_costs
 
     def predict(self, x_test):
         self.prediction_graph.placeholders = {self.X: x_test}
         return self.prediction_graph.evaluate()
 
 
-def show_image(i, im_classes, x, y):
-    plt.imshow(x[i])
+def show_image(idx, im_classes, x, y):
+    plt.imshow(x[idx])
     plt.show()
     print(
         "y = "
-        + str(y[0, i])
+        + str(y[0, idx])
         + ". It's a "
-        + im_classes[y[0, i]].decode("utf-8")
+        + im_classes[y[0, idx]].decode("utf-8")
         + " picture."
     )
 
 
-def plot_boundary(reg_name, m, xt, yt):
+def plot_boundary(reg_name, md, xt, yt):
     plt.title(f"Model with regularizer: {reg_name}")
     axes = plt.gca()
     axes.set_xlim([-0.75, 0.40])
     axes.set_ylim([-0.75, 0.65])
-    plot_decision_boundary(lambda x: m.predict(x.T), xt, yt)
+    plot_decision_boundary(lambda x: md.predict(x.T), xt, yt)
 
 
 if __name__ == "__main__":
@@ -142,7 +148,10 @@ if __name__ == "__main__":
     pr = cProfile.Profile()
     models = [NNModel(n), NNModel(n, lambd=0.7), NNModel(n, keep_prob=0.86)]
 
-    for model in models:
+    for i, model in enumerate(models):
+        reg_utils.display_graph(model.cost_graph)
+        input("Press enter to continue...")
+
         # Train
         start_time = time.time()
         costs = model.train(train_x, train_y)

@@ -9,7 +9,7 @@ import abc
 
 import numpy as np
 
-from .static_shape import StaticShape
+from .shape import Shape
 from ..utils import validate
 
 __all__ = [
@@ -89,7 +89,7 @@ class KeepVarianceInitializer(RandomNormalInitializer, abc.ABC):
         self.axis_size_divider = axis_size_divider
 
     def initialize(self, shape, dtype):
-        StaticShape.from_tuple(shape).check_axis_index(self.axis_size_divider)
+        Shape.from_tuple(shape).check_axis_index(self.axis_size_divider)
         r = super().initialize(shape, dtype)
         sq = np.sqrt(self.k / shape[self.axis_size_divider], dtype=dtype)
         return r * sq

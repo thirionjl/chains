@@ -5,6 +5,7 @@ from chains.front.model import Model
 from chains.front.network import BatchNorm
 from chains.front.network import Dense, Sequence, SoftmaxClassifier, ReLu
 from chains.front.training import MiniBatchTraining
+from chains.tools import text_exporter, graphviz_exporter
 from chains.tools.backup import restore_network
 from coursera.course2.w3.c2w3 import CostListener
 from coursera.course2.w3.tf_utils import load_dataset
@@ -54,3 +55,8 @@ if __name__ == "__main__":
     test_predictions = model.predict(test_x)
     print(f"Train accuracy = {accuracy(train_y_orig, train_predictions)}%")
     print(f"Test accuracy = {accuracy(test_y_orig, test_predictions)}%")
+
+    # Drawing prep
+    gz = graphviz_exporter.export(model.network.cost_graph)
+    gz.view()
+    print(text_exporter.export(model.network.cost_graph))

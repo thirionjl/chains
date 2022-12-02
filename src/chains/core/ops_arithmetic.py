@@ -2,7 +2,7 @@
 import numpy as np
 
 from .ops import ElementWiseBinaryOp, ElementWiseUnaryOp
-from .tensor import Tensor
+from chains.utils.nd_typing import NdArrayLike
 from ..utils import validate
 
 __all__ = ["Add", "Negate", "ConstMul", "Mul", "Pow", "IsGreaterThan"]
@@ -18,7 +18,7 @@ class Add(ElementWiseBinaryOp):
 
 
 class Negate(ElementWiseUnaryOp):
-    def compute(self, x: Tensor):
+    def compute(self, x: NdArrayLike):
         super().compute(x)
         self.output = -x
 
@@ -27,11 +27,11 @@ class Negate(ElementWiseUnaryOp):
 
 
 class ConstMul(ElementWiseUnaryOp):
-    def __init__(self, c: Tensor):
+    def __init__(self, c: NdArrayLike):
         super().__init__()
         self.c = c
 
-    def compute(self, x: Tensor):
+    def compute(self, x: NdArrayLike):
         super().compute(x)
         self.output = self.c * x
 
@@ -43,7 +43,7 @@ class ConstMul(ElementWiseUnaryOp):
 
 
 class Mul(ElementWiseBinaryOp):
-    def compute(self, x: Tensor, y: Tensor):
+    def compute(self, x: NdArrayLike, y: NdArrayLike):
         super().compute(x, y)
         self.output = x * y
 
@@ -58,7 +58,7 @@ class Pow(ElementWiseUnaryOp):
         validate.is_integer_dtype(int)
         self.exponent = exponent
 
-    def compute(self, x: Tensor):
+    def compute(self, x: NdArrayLike):
         super().compute(x)
         self.output = x**self.exponent
 
