@@ -95,7 +95,7 @@ class Transpose(UnaryOp):
         super().compute(x)
         self.output = np.transpose(x, self.axes)
 
-    def partials(self, d_output):
+    def partials(self, d_output) -> tuple[NdArrayLike]:
         return (np.transpose(d_output, self.axes),)
 
 

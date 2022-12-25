@@ -12,7 +12,6 @@ class ReLu(ElementWiseUnaryOp):
     """Implements the rectified linear unit operation"""
 
     def compute(self, x: NdArrayLike):
-        super().compute(x)
         self.output = np.fmax(x, 0)
 
     def simple_derivative(self):
@@ -43,7 +42,6 @@ class TanH(ElementWiseUnaryOp):
     """Hyperbolic tangent activation function"""
 
     def compute(self, x: NdArrayLike):
-        super().compute(x)
         self.output = np.tanh(x)
 
     def simple_derivative(self):
@@ -59,8 +57,7 @@ class Sigmoid(ElementWiseUnaryOp):
         return np.exp(np.fmin(x, 0)) / (1 + np.exp(-np.abs(x)))
 
     def compute(self, x: NdArrayLike):
-        super().compute(x)
-        self.output = self.sigmoid(x)
+        self.output = Sigmoid.sigmoid(x)
 
     def simple_derivative(self):
         return self.output * (1 - self.output)

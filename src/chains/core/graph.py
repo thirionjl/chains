@@ -1,4 +1,5 @@
 """Data structure elements of the computation graph"""
+import re
 import warnings
 from collections import deque, defaultdict
 from operator import attrgetter
@@ -83,7 +84,21 @@ class Node:
             incoming_nodes = []
         incoming_shapes = tuple(n.shape for n in incoming_nodes)
         incoming_dtypes = tuple(n.dtype for n in incoming_nodes)
-        op.check_incoming_shapes(*incoming_shapes)
+        try:
+            op.check_incoming_shapes(*incoming_shapes)
+        except TypeError as e:
+            match_result = re.match(
+                r".* takes (\d+) positional arguments but (\d+) were given", str(e)
+            )
+            if match_result:
+                grs = match_result.groups()
+                op_fqn = ".".join((op.__class__.__module__, op.__class__.__qualname__))
+                raise ValueError(
+                    f"Invalid inputs for {op_fqn}: expected {grs[0]} but got {grs[1]}"
+                ) from None
+            else:
+                raise
+
         self.shape: Shape = op.compute_out_shape(*incoming_shapes)
         self.dtype: np.dtype = np.dtype(op.compute_out_dtype(*incoming_dtypes))
         self.op: Op = op

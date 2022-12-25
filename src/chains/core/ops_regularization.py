@@ -70,7 +70,6 @@ class Dropout(ElementWiseUnaryOp):
         return np.result_type(dtype, self.keep_prob, np.bool)
 
     def compute(self, x: NdArrayLike):
-        super().compute(x)
         self.mask = np.random.random_sample(np.shape(x)) < self.keep_prob
         self.output = self.mask * self.x / self.keep_prob
 
